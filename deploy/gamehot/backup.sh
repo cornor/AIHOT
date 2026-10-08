@@ -14,4 +14,13 @@ git rev-parse HEAD > "$backup_dir/commit.txt"
 chmod -R go-rwx "$backup_dir"
 docker compose --env-file .env -f deploy/gamehot/compose.yaml exec -T db pg_restore --list < "$backup_dir/postgres.dump" > /dev/null
 # Keep the newest seven completed snapshots.
-find private/backups -mindepth 1 -maxdepth 1 -type d | sort -r | tail -n +8 | while read -r old; do rm -rf -- "$old"; done
+python3 - <<'PY'
+from pathlib import Path
+import re
+import shutil
+root = Path("private/backups").resolve()
+snapshots = sorted((p for p in root.iterdir() if p.is_dir() and not p.is_symlink()
+                    and re.fullmatch(r"\d{8}-\d{6}", p.name)), reverse=True)
+for old in snapshots[7:]:
+    shutil.rmtree(old)
+PY
