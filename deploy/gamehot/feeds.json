@@ -1,0 +1,79 @@
+[
+  {
+    "sourceId": "werss-youxiputao",
+    "feedId": "MP_WXS_2399768513",
+    "name": "游戏葡萄",
+    "tier": "T2",
+    "firstParty": false
+  },
+  {
+    "sourceId": "werss-gameres",
+    "feedId": "MP_WXS_2395315541",
+    "name": "GameRes游资网",
+    "tier": "T2",
+    "firstParty": false
+  },
+  {
+    "sourceId": "werss-youxituoluo",
+    "feedId": "MP_WXS_2396792820",
+    "name": "游戏陀螺",
+    "tier": "T2",
+    "firstParty": false
+  },
+  {
+    "sourceId": "werss-unreal",
+    "feedId": "MP_WXS_3017338920",
+    "name": "虚幻引擎",
+    "tier": "T1",
+    "firstParty": true
+  },
+  {
+    "sourceId": "werss-unity",
+    "feedId": "MP_WXS_3921392875",
+    "name": "Unity官方平台",
+    "tier": "T1",
+    "firstParty": true
+  },
+  {
+    "sourceId": "werss-youxiribao",
+    "feedId": "MP_WXS_2395236060",
+    "name": "游戏日报",
+    "tier": "T2",
+    "firstParty": false
+  },
+  {
+    "sourceId": "werss-luosiji",
+    "feedId": "MP_WXS_3209762660",
+    "name": "罗斯基",
+    "tier": "T2",
+    "firstParty": false
+  },
+  {
+    "sourceId": "werss-enjoy",
+    "feedId": "MP_WXS_3864828339",
+    "name": "Enjoy出海开发者服务平台",
+    "tier": "T2",
+    "firstParty": false
+  },
+  {
+    "sourceId": "werss-youxichaguan",
+    "feedId": "MP_WXS_2399837924",
+    "name": "游戏茶馆",
+    "tier": "T2",
+    "firstParty": false
+  },
+  {
+    "sourceId": "werss-lemon",
+    "feedId": "MP_WXS_3075206960",
+    "name": "柠檬游戏说",
+    "tier": "T2",
+    "firstParty": false
+  },
+  {
+    "sourceId": "werss-gamez",
+    "feedId": "MP_WXS_2390101960",
+    "name": "游戏那点事Gamez",
+    "tier": "T2",
+    "firstParty": false
+  }
+]

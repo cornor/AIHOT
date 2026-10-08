@@ -55,7 +55,7 @@ export function werssMaterials(payload: unknown, sourceId: string): MaterialInpu
 
 async function sync() {
   if (process.env.COLLECT_ENABLED !== 'true') throw new Error('COLLECT_ENABLED is off; no WeRSS collection performed');
-  const feeds = z.array(Feed).parse(JSON.parse(await readFile(path.join(REPO_ROOT, '.data/werss/feeds.json'), 'utf8')));
+  const feeds = z.array(Feed).parse(JSON.parse(await readFile(process.env.WERSS_FEEDS_FILE || path.join(REPO_ROOT, '.data/werss/feeds.json'), 'utf8')));
   if (!feeds.length) { console.log('No WeRSS subscriptions configured; waiting for login and source selection.'); return; }
   for (const feed of feeds) {
     try {

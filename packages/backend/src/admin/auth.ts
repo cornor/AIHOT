@@ -108,7 +108,7 @@ export function loginRedirect(returnTo: string): { url: string; stateCookie: str
   return { url, stateCookie: sign(state) };
 }
 
-/** Only admin paths on this site; anything else (other hosts, protocol-relative) falls back to /admin. */
+/** Only local admin and WeRSS paths; reject ambiguous paths before a browser can normalize them. */
 export function safeReturn(target: string): string {
   let path = target;
   // A proxy's login redirect may pass the whole original URL; keep only its path and query.
@@ -120,7 +120,13 @@ export function safeReturn(target: string): string {
       return "/admin";
     }
   }
-  return /^\/admin(\/|\?|$)/.test(path) && !path.startsWith("//") ? path : "/admin";
+  if (!/^\/(admin|werss)(\/|\?|$)/.test(path) || /[\\\x00-\x20\x7f]/.test(path)) return "/admin";
+  try {
+    const decoded = decodeURIComponent(path.split("?")[0]!);
+    if (/[\\\x00-\x20\x7f]/.test(decoded) || decoded.split("/").some((part) => part === "." || part === "..")) return "/admin";
+    const normalized = new URL(path, "https://local.invalid");
+    return normalized.origin === "https://local.invalid" && /^\/(admin|werss)(\/|$)/.test(normalized.pathname) ? path : "/admin";
+  } catch { return "/admin"; }
 }
 
 interface FeishuUser {

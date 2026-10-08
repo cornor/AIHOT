@@ -1,0 +1,125 @@
+name: gamehot
+
+x-app: &app
+  build:
+    context: ../..
+  image: gamehot-app:${DEPLOY_VERSION:-latest}
+  env_file: ../../.env
+  restart: unless-stopped
+  logging: &logging
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: "3"
+  environment: &app-env
+    NODE_ENV: production
+    TZ: Asia/Shanghai
+    DATABASE_URL: postgres://gamehot:${POSTGRES_PASSWORD}@db:5432/gamehot
+    AIHOT_DATA_DIR: /data
+    API_BASE_URL: http://api:3001
+    LOCAL_ROUTER_URL: http://web:3000
+  volumes:
+    - ../../private/app-data:/data
+  depends_on:
+    db:
+      condition: service_healthy
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      POSTGRES_USER: gamehot
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: gamehot
+      TZ: Asia/Shanghai
+    volumes:
+      - ../../private/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U gamehot -d gamehot"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+  setup:
+    <<: *app
+    restart: "no"
+    command: [sh, -c, "node scripts/migrate.ts && node scripts/seed.ts"]
+  api:
+    <<: *app
+    command: [node, apps/api/src/main.ts]
+    environment:
+      <<: *app-env
+      API_HOST: 0.0.0.0
+      API_PORT: "3001"
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+  web:
+    <<: *app
+    env_file: []
+    command: [node, apps/web/server.ts]
+    environment:
+      NODE_ENV: production
+      TZ: Asia/Shanghai
+      SITE_URL: https://gamehot.paoyou.com
+      API_BASE_URL: http://api:3001
+      TRUST_PROXY: "true"
+      WEB_HOST: 0.0.0.0
+      WEB_PORT: "3000"
+    ports: ["127.0.0.1:3000:3000"]
+    depends_on:
+      api:
+        condition: service_started
+  worker:
+    <<: *app
+    command: [node, apps/worker/src/main.ts]
+    stop_grace_period: 210s
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+  werss:
+    build:
+      context: .
+      dockerfile: werss/Dockerfile
+    image: gamehot-werss:${DEPLOY_VERSION:-latest}
+    restart: unless-stopped
+    logging: *logging
+    env_file: ../../private/werss.env
+    environment:
+      TZ: Asia/Shanghai
+      ENABLE_JOB: "False"
+      WERSS_AUTH_WEB: "True"
+      MAX_PAGE: "1"
+      SPAN_INTERVAL: "20"
+      RSS_BASE_URL: https://gamehot.paoyou.com/werss
+      RSS_LOCAL: "False"
+      RSS_FULL_CONTEXT: "True"
+      RSS_PAGE_SIZE: "50"
+      GATHER.CONTENT: "True"
+      GATHER.CONTENT_AUTO_CHECK: "False"
+      GATHER.MODEL: weread_mp
+      DEBUG: "False"
+    ports: ["127.0.0.1:8001:8001"]
+    volumes:
+      - ../../private/werss-data:/app/data
+    shm_size: 512mb
+  collector:
+    <<: *app
+    env_file:
+      - ../../private/werss.env
+    command: [python3, deploy/gamehot/collector.py, --watch]
+    network_mode: service:werss
+    environment:
+      <<: *app-env
+      WERSS_FEEDS_FILE: /app/deploy/gamehot/feeds.json
+      PYTHONUNBUFFERED: "1"
+      COLLECT_ENABLED: ${COLLECT_ENABLED:-false}
+      MODEL_CALLS_ENABLED: "false"
+      FEISHU_CONTENT_PUSH_ENABLED: "false"
+      INDEXNOW_SUBMIT_ENABLED: "false"
+    depends_on:
+      werss:
+        condition: service_started
+      setup:
+        condition: service_completed_successfully
