@@ -1,6 +1,6 @@
 # 游戏研发情报部署
 
-服务器 `/opt/gamehot` 使用本目录的 Compose 配置，宿主机现有 Nginx 提供 HTTPS。
+服务器 `/opt/gamehot` 使用本目录的 Compose 配置，宿主机现有 Nginx 提供 HTTP。HTTPS 证书已申请，暂不启用强制跳转。
 
 ```bash
 cd /opt/gamehot
@@ -12,7 +12,7 @@ bash deploy/gamehot/backup.sh
 
 私有配置为 `.env`、`private/werss.env`，数据保存在 `private/`。两者不进入 Git 和镜像构建上下文。模型密钥仅供后端使用。
 
-WeRSS 入口：`https://gamehot.paoyou.com/werss/`。先登录站点管理员，再登录 WeRSS，进入微信读书页面扫码。采集器通过内部回环地址访问 RSS，每轮之后等待 30 分钟。
+WeRSS 入口：`http://gamehot.paoyou.com/werss/`。先登录站点管理员，再登录 WeRSS，进入微信读书页面扫码。采集器通过内部回环地址访问 RSS，每轮之后等待 30 分钟。
 
 本站用于公司内部，`private/site-access.conf` 始终包含管理员访问校验，资讯、RSS、API 和 MCP 均不对外匿名开放。WeRSS 也始终要求管理员会话。使用者已明确无需公开条款与隐私文案确认。
 

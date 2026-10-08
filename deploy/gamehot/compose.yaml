@@ -62,7 +62,7 @@ services:
     environment:
       NODE_ENV: production
       TZ: Asia/Shanghai
-      SITE_URL: https://gamehot.paoyou.com
+      SITE_URL: http://gamehot.paoyou.com
       API_BASE_URL: http://api:3001
       TRUST_PROXY: "true"
       WEB_HOST: 0.0.0.0
@@ -92,7 +92,7 @@ services:
       WERSS_AUTH_WEB: "True"
       MAX_PAGE: "1"
       SPAN_INTERVAL: "20"
-      RSS_BASE_URL: https://gamehot.paoyou.com/werss
+      RSS_BASE_URL: http://gamehot.paoyou.com/werss
       RSS_LOCAL: "False"
       RSS_FULL_CONTEXT: "True"
       RSS_PAGE_SIZE: "50"

@@ -3,14 +3,16 @@
 日期：2026-10-08  
 状态：使用者已于 2026-10-08 确认执行，部署进行中。随后明确仅供公司内部使用，整站需管理员登录，无需公开条款与隐私文案确认。
 
+执行期间补充：使用者要求先支持 HTTP；正式入口使用 `http://gamehot.paoyou.com`，不强制跳转 HTTPS。已申请的证书保留备用。
+
 ## 1. 部署目标和范围
 
 | 项目 | 目标 |
 |---|---|
 | 服务器 | `114.132.169.89`，通过 `ssh root@114.132.169.89` 管理 |
-| 网站地址 | `https://gamehot.paoyou.com` |
-| WeRSS 管理入口 | `https://gamehot.paoyou.com/werss/`，仅管理员可访问 |
-| 微信读书授权页 | `https://gamehot.paoyou.com/werss/weread` |
+| 网站地址 | `http://gamehot.paoyou.com` |
+| WeRSS 管理入口 | `http://gamehot.paoyou.com/werss/`，仅管理员可访问 |
+| 微信读书授权页 | `http://gamehot.paoyou.com/werss/weread` |
 | 站名 | 游戏研发情报 |
 | 代码仓库 | `git@github.com:cornor/AIHOT.git` |
 | 当前定制分支 | `codex/game-news-rss`，已推送基础提交 `fac08de` |
@@ -87,7 +89,7 @@ collector 与 WeRSS 共享网络命名空间，使现有入库脚本继续访问
 ### 第三步：安装和配置服务
 
 1. 创建部署目录；按检查结果安装必要运行组件，获取应用和 WeRSS 镜像。
-2. 配置 `SITE_URL=https://gamehot.paoyou.com`、`SITE_DOMAIN=gamehot.paoyou.com` 和正确的反向代理设置。
+2. 配置 `SITE_URL=http://gamehot.paoyou.com`、`SITE_DOMAIN=gamehot.paoyou.com` 和正确的反向代理设置。
 3. 生成服务器专用的数据库密码、管理员密码和会话密钥。通过 SSH 安全传送现有 DeepSeek Key，不写入计划、Git 或公开日志。
 4. 网站前端只配置网站地址与 API 连接；模型密钥仅供必要的后端进程使用。
 5. 私有配置文件权限设为 `600`，为数据库、文件、WeRSS 数据和证书配置持久化存储。
@@ -106,7 +108,7 @@ collector 与 WeRSS 共享网络命名空间，使现有入库脚本继续访问
 ### 第五步：接通服务器上的公众号采集
 
 1. 在服务器启动 WeRSS，配置相同的 11 个账号。
-2. 配置域名、HTTPS 及受保护的 `/werss/` 入口，由使用者通过 `https://gamehot.paoyou.com/werss/weread` 完成微信读书扫码授权。域名暂不可用时才使用 SSH 隧道作为临时入口。
+2. 配置域名、HTTPS 及受保护的 `/werss/` 入口，由使用者通过 `http://gamehot.paoyou.com/werss/weread` 完成微信读书扫码授权。域名暂不可用时才使用 SSH 隧道作为临时入口。
 3. 验证真实文章列表及正文获取，随后验证 RSS 入库和去重；仅能读取账号封面不算采集成功。
 4. 启用服务器 collector 和 worker，采集周期之间等待 30 分钟；单个账号失败不阻塞其他账号。
 5. 确认 DeepSeek 请求仍经过正常回执机制，新文章能筛选、写摘要并发布。
@@ -148,9 +150,9 @@ collector 与 WeRSS 共享网络命名空间，使现有入库脚本继续访问
 
 等服务器 WeRSS 配置完成后，我会通过私有方式提供站点和 WeRSS 的管理员登录信息。你按以下步骤操作：
 
-1. 浏览器访问 `https://gamehot.paoyou.com/werss/`。
+1. 浏览器访问 `http://gamehot.paoyou.com/werss/`。
 2. 如果进入站点登录页，先使用站点管理员账号登录，随后返回 WeRSS 入口。
-3. 使用 WeRSS 管理员账号登录，打开“微信读书”页面；也可访问 `https://gamehot.paoyou.com/werss/weread`。
+3. 使用 WeRSS 管理员账号登录，打开“微信读书”页面；也可访问 `http://gamehot.paoyou.com/werss/weread`。
 4. 点击“扫码授权”，用手机微信扫一扫，并确认微信读书网页版登录。
 5. 告诉我“已授权”，我再验证真实文章采集是否成功。
 
@@ -175,8 +177,8 @@ collector 与 WeRSS 共享网络命名空间，使现有入库脚本继续访问
 
 满足以下条件才认定整套部署完成：
 
-- `https://gamehot.paoyou.com` 可正常访问，HTTPS 证书有效，后台可登录。
-- `https://gamehot.paoyou.com/werss/` 可通过管理员登录访问，微信读书扫码页可用；子页面刷新、资源、接口及必要的下载、WebSocket 正常，匿名访问不能取得 WeRSS 管理内容或公众号全文。
+- `http://gamehot.paoyou.com` 可正常访问，后台可登录；本阶段不要求 HTTPS。
+- `http://gamehot.paoyou.com/werss/` 可通过管理员登录访问，微信读书扫码页可用；子页面刷新、资源、接口及必要的下载、WebSocket 正常，匿名访问不能取得 WeRSS 管理内容或公众号全文。
 - 迁移的文章、摘要、精选结果及信源设置与迁移快照一致。
 - 11 个公众号已配置；首轮采集逐个验证，局部失败清单明确记录。
 - 至少验证一条新文章从采集、RSS 入库、DeepSeek 处理到公开展示的完整链路；若暂无新文章，先证明采集、去重和处理服务正常，再记录后续实测结果。
