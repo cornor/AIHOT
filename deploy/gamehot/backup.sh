@@ -6,7 +6,7 @@ mkdir -p "$backup_dir"
 chmod 700 "$backup_dir"
 compose=(docker compose --env-file .env -f deploy/gamehot/compose.yaml)
 "${compose[@]}" exec -T db pg_dump -U gamehot -d gamehot -Fc > "$backup_dir/postgres.dump"
-"${compose[@]}" exec -T werss python -c 'import sqlite3; a=sqlite3.connect("file:/app/data/db.db?mode=ro",uri=True); b=sqlite3.connect("/app/data/backup.sqlite"); a.backup(b); b.close(); a.close()'
+"${compose[@]}" exec -T werss python3 -c 'import sqlite3; a=sqlite3.connect("file:/app/data/db.db?mode=ro",uri=True); b=sqlite3.connect("/app/data/backup.sqlite"); a.backup(b); b.close(); a.close()'
 cp private/werss-data/backup.sqlite "$backup_dir/werss.sqlite"
 tar --exclude=db.db --exclude=db.db-wal --exclude=db.db-shm --exclude=backup.sqlite -czf "$backup_dir/files.tar.gz" private/app-data private/werss-data
 cp .env private/werss.env "$backup_dir/"

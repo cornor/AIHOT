@@ -12,4 +12,4 @@ FROM upstream
 COPY --from=frontend /ui/dist/ /app/static/
 COPY werss/weread_mp.py /app/core/wx/model/weread_mp.py
 COPY werss/patch-backend.py /tmp/patch-backend.py
-RUN python /tmp/patch-backend.py && rm /tmp/patch-backend.py
+RUN python3 /tmp/patch-backend.py && rm /tmp/patch-backend.py
