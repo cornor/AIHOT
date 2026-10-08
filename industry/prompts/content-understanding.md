@@ -10,17 +10,17 @@
 
 `itemType` 必须七选一：
 
-- `model_release`：新模型或大版本更新
-- `product_launch`：新产品、工具或重大功能更新
-- `tool_or_prompt`：可直接复用的方法、Prompt、Skill 或技巧
+- `model_release`：游戏引擎或核心工具链重大更新（沿用 model_release 内部标识）
+- `product_launch`：游戏产品发布、测试、研发工具或重大功能更新
+- `tool_or_prompt`：可直接复用的研发方法、脚本、工作流或玩法设计技巧
 - `research_paper`：论文、研究或技术报告
 - `industry_event`：融资、收购、监管、诉讼、商业动作或人事
 - `opinion_analysis`：观点、行业判断、复盘或长访谈
 - `tutorial_explainer`：教程、科普、解读或评测
 
-优先级：发了模型选 model_release；发了工具选 product_launch；发了 Prompt 或方法选 tool_or_prompt；论文优先 research_paper；评测选 tutorial_explainer。
+优先级：引擎重大升级选 model_release；游戏或工具发布选 product_launch；可复用研发方法选 tool_or_prompt；论文优先 research_paper；评测选 tutorial_explainer。
 
-输出前检查 `itemType` 与第一个分类标签是否自洽：`model_release` 对应“模型发布”，`product_launch` 对应“产品更新”，`research_paper` 对应“论文/研究”，`industry_event` 对应“行业动态”或“政策/监管”，`opinion_analysis` 对应“大佬观点”或“现象/趋势”，`tutorial_explainer` 对应“教程/实践”或“评测/基准”。如果二者冲突，按当前材料的核心事件修正后再输出。
+输出前检查 `itemType` 与第一个分类标签是否自洽：`model_release` 对应“引擎更新”，`product_launch` 对应“产品更新”，`research_paper` 对应“论文/研究”，`industry_event` 对应“行业动态”或“政策/监管”，`opinion_analysis` 对应“观点分析”或“现象/趋势”，`tutorial_explainer` 对应“教程/实践”或“评测/基准”。如果二者冲突，按当前材料的核心事件修正后再输出。
 
 ## 作者角色
 
@@ -32,14 +32,9 @@
 
 ## 标签
 
-`tags` 输出 1–6 个字符串。第一个必须从以下分类标签中选一个：模型发布、产品更新、开源/仓库、论文/研究、教程/实践、大佬观点、评测/基准、安全/对齐、现象/趋势、行业动态、政策/监管、非AI/通用工具、其他。
-
-其后可选 0–5 个适用标签，并且只能来自以下两个白名单：
-
-- 主题：Agent、编码、推理、多模态、语音、视频、图像生成、RAG、端侧、数据/训练、搜索、部署/工程、开源生态、具身智能、MCP/工具调用
-- 实体：OpenAI、Anthropic、DeepSeek、DeepMind、Google、Meta、Microsoft、xAI、Hugging Face、GitHub、arXiv
-
-正文中即使明确出现了 NVIDIA、Apple、阿里等其他实体，也不要把它们放进 `tags`。不要创造白名单之外的标签。没有适用的主题或实体时，只返回第一个分类标签；例如学校限制 AI 使用的监管新闻，不需要强行归到“编码”或“推理”。
+`tags` 输出 1–6 个字符串。第一个必须从分类标签选择：引擎更新、产品更新、研发实践、玩法设计、市场发行、行业动态、政策/监管、论文/研究、开源/仓库、教程/实践、现象/趋势、观点分析、评测/基准、其他。
+其后 0–5 个标签只能来自主题：Unity、Unreal Engine、小游戏、图形渲染、性能优化、服务端、美术管线、游戏设计、AI辅助研发、商业化、出海、买量、用户留存、版号、独立游戏，或实体：腾讯、网易、米哈游、Epic Games、Unity、Valve、中国音数协。
+没有适用标签时只返回分类标签，不虚构标签。摘要面向研发团队，保留平台、版本、指标口径与来源的不确定性。
 
 ## 候选阅读价值
 
