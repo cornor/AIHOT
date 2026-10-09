@@ -6,6 +6,7 @@ import { config, credential } from "../config.ts";
 import { audit } from "../audit.ts";
 import { sql } from "../db.ts";
 import { sha256 } from "../lib/ids.ts";
+import { SSO_COOKIE, ssoPrincipal } from "./sso.ts";
 
 export const SESSION_COOKIE = "aihot_admin";
 export const STATE_COOKIE = "aihot_oauth_state";
@@ -90,7 +91,9 @@ export function parseCookies(header: string | undefined): Record<string, string>
   const out: Record<string, string> = {};
   for (const part of (header ?? "").split(";")) {
     const i = part.indexOf("=");
-    if (i > 0) out[part.slice(0, i).trim()] = decodeURIComponent(part.slice(i + 1).trim());
+    if (i > 0) {
+      try { out[part.slice(0, i).trim()] = decodeURIComponent(part.slice(i + 1).trim()); } catch { /* Ignore malformed cookies. */ }
+    }
   }
   return out;
 }
@@ -212,6 +215,8 @@ export async function passwordLogin(password: string, returnTo: string, userAgen
 }
 
 export async function sessionPrincipal(cookieHeader: string | undefined): Promise<AdminPrincipal | null> {
+  const company = await ssoPrincipal(parseCookies(cookieHeader)[SSO_COOKIE]);
+  if (company?.role === "admin" && company.admin_user_id) return { userId: company.admin_user_id, name: company.name, csrf: company.csrf, dev: false };
   const token = parseCookies(cookieHeader)[SESSION_COOKIE];
   if (token) {
     const hash = sha256(token);

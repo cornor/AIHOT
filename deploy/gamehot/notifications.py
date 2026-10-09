@@ -79,7 +79,7 @@ class Notices:
             self.state['auth_notice_at'] = now
             self.enqueue('微信读书授权已过期' if status == 'expired' else '微信读书尚未授权', [
                 '无法正常采集新文章，请打开下面的页面重新扫码并在手机上确认。',
-                'http://gamehot.paoyou.com/werss/weread',
+                'https://gamehot.paoyou.com/werss/weread',
                 '先登录站点，再登录 WeRSS，点击“扫码授权”。',
                 '同一问题每天最多提醒一次。'])
         elif status == 'valid' and previous in ('expired', 'missing'):

@@ -20,6 +20,7 @@ import {
   type AdminPrincipal,
 } from "@aihot/backend/admin/auth";
 import { sendProblem } from "../http/respond.ts";
+import { SSO_COOKIE, endSsoSession, ssoEnabled, ssoPrincipal } from "@aihot/backend/admin/sso";
 
 /** Cookies are Secure whenever the site is served over HTTPS. */
 const secure = () => config.siteUrl.startsWith("https://");
@@ -51,7 +52,10 @@ export function adminHandler(fn: AdminHandler) {
   return async (req: FastifyRequest, reply: FastifyReply) => {
     reply.header("Cache-Control", "no-store");
     const admin = await sessionPrincipal(req.headers.cookie);
-    if (!admin) return sendProblem(req, reply, { status: 401, code: "unauthorized", detail: "Sign in to the admin first." });
+    if (!admin) {
+      const reader = await ssoPrincipal(parseCookies(req.headers.cookie)[SSO_COOKIE]);
+      return sendProblem(req, reply, { status: reader ? 403 : 401, code: reader ? "forbidden" : "unauthorized", detail: reader ? "此账号没有管理员权限。" : "Sign in to the admin first." });
+    }
     if (req.method !== "GET" && req.method !== "HEAD" && req.headers["x-csrf-token"] !== admin.csrf) {
       return sendProblem(req, reply, { status: 403, code: "forbidden", detail: "Missing or stale CSRF token." });
     }
@@ -83,7 +87,7 @@ export function registerAdminAuth(app: FastifyInstance) {
     return reply.header("Cache-Control", "no-store").redirect(loginPage(returnTo), 302);
   });
 
-  app.get("/api/auth/options", async (_req, reply) => reply.header("Cache-Control", "no-store").send({ password: !!config.adminPassword, feishu: feishuLoginConfigured() }));
+  app.get("/api/auth/options", async (_req, reply) => reply.header("Cache-Control", "no-store").send({ password: !!config.adminPassword, feishu: feishuLoginConfigured(), sso: ssoEnabled() }));
 
   app.post("/api/auth/password", async (req, reply) => {
     const b = (req.body ?? {}) as Record<string, string>;
@@ -92,7 +96,8 @@ export function registerAdminAuth(app: FastifyInstance) {
     if (tooManyAttempts(String(req.ip))) return reply.redirect(loginPage(returnTo, "too-many"), 303);
     try {
       const { token, returnTo: target } = await passwordLogin(String(b.password ?? ""), returnTo, req.headers["user-agent"]);
-      reply.header("Set-Cookie", cookie(SESSION_COOKIE, token, SESSION_DAYS * 86400, secure()));
+      await endSsoSession(parseCookies(req.headers.cookie)[SSO_COOKIE]);
+      reply.header("Set-Cookie", [cookie(SESSION_COOKIE, token, SESSION_DAYS * 86400, secure()), cookie(SSO_COOKIE, "", 0, secure())]);
       return reply.redirect(target, 303);
     } catch (error) {
       if (!(error instanceof LoginRejected)) req.log.error({ err: error }, "admin login failed");
@@ -129,12 +134,16 @@ export function registerAdminAuth(app: FastifyInstance) {
   app.get("/api/auth/check", async (req, reply) => {
     reply.header("Cache-Control", "no-store");
     const admin = await sessionPrincipal(req.headers.cookie);
-    return reply.code(admin && !admin.dev ? 204 : 401).send();
+    if (admin && !admin.dev) return reply.code(204).send();
+    const reader = await ssoPrincipal(parseCookies(req.headers.cookie)[SSO_COOKIE]);
+    return reply.code(reader ? 403 : 401).send();
   });
 
   app.post("/api/auth/logout", async (req, reply) => {
+    if (req.headers.origin && req.headers.origin !== new URL(config.siteUrl).origin) return reply.code(403).send();
     await endSession(req.headers.cookie);
-    reply.header("Set-Cookie", cookie(SESSION_COOKIE, "", 0, secure())).header("Cache-Control", "no-store");
+    await endSsoSession(parseCookies(req.headers.cookie)[SSO_COOKIE]);
+    reply.header("Set-Cookie", [cookie(SESSION_COOKIE, "", 0, secure()), cookie(SSO_COOKIE, "", 0, secure())]).header("Cache-Control", "no-store");
     return reply.redirect("/", 303);
   });
 

@@ -79,3 +79,7 @@ npm run build -w @aihot/web && node --test apps/web/tests/*.test.ts
 ```
 
 测试不访问任何外部服务：模型和付费接口都由本地假服务回答。
+
+## 公司内部访问与 SSO
+
+公司站点通过 Nginx 区分资讯读者和管理员；资讯、RSS、API、MCP 仍从 publication/ 读取同一份内容。认证路由 admin-auth.ts、sso-auth.ts 属于私有身份接口，可调用 backend/admin/，不读取或发布资讯。前端只通过 HTTP 读取身份和权限。公司读者存储在 sso_users/sso_sessions，避免与仅管理员可用的旧会话表混淆。权限修改与会话撤销在同一事务提交，审计仍统一通过 audit.ts 写入。

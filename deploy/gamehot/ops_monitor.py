@@ -77,7 +77,7 @@ class Monitor:
         lines += [('异常：' if kind == 'alarm' else '恢复：') + text for _, kind, text in events]
         lines += ['异常请转给维护人员排查；恢复仅表示对应检查已恢复正常。',
                   '同一问题每天最多提醒一次；运维通知间隔至少 6 小时。',
-                  '后台：http://gamehot.paoyou.com/admin', '通知编号：' + self.state['notice_id']]
+                  '后台：https://gamehot.paoyou.com/admin', '通知编号：' + self.state['notice_id']]
         try:
             delivered = sender('\n'.join(lines))
         except Exception as exc:
@@ -149,7 +149,7 @@ def observations(root=ROOT, now=None):
         except Exception:
             found['database.probe'] = (True, '无法查询数据库，模型和后台任务状态暂不可确认')
     try:
-        request = urllib.request.Request('http://127.0.0.1/api/health', headers={'Host': 'gamehot.paoyou.com'})
+        request = urllib.request.Request('https://gamehot.paoyou.com/api/health')
         try:
             with urllib.request.urlopen(request, timeout=10) as response: status = response.status
         except urllib.error.HTTPError as exc: status = exc.code

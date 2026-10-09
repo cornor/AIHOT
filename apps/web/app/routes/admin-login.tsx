@@ -15,25 +15,31 @@ const ERRORS: Record<string, string> = {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
-  const returnTo = url.searchParams.get("return") ?? "/admin";
-  const options = await apiGet<{ password: boolean; feishu: boolean }>("/api/auth/options", { signal: request.signal }).catch(() => ({ password: true, feishu: false }));
-  return { returnTo: /^\/(admin|werss)(\/|\?|$)/.test(returnTo) ? returnTo : "/admin", error: url.searchParams.get("error"), ...options };
+  const returnTo = url.searchParams.get("return") ?? "/";
+  const options = await apiGet<{ password: boolean; feishu: boolean; sso: boolean }>("/api/auth/options", { signal: request.signal }).catch(() => ({ password: true, feishu: false, sso: false }));
+  return { returnTo: returnTo.startsWith("/") && !returnTo.startsWith("//") && !/[\\\x00-\x20]/.test(returnTo) ? returnTo : "/", error: url.searchParams.get("error"), ...options };
 }
 
-export const meta: Route.MetaFunction = () => [{ title: `登录 · ${SITE.name} 后台` }, { name: "robots", content: "noindex, nofollow" }];
+export const meta: Route.MetaFunction = () => [{ title: `登录 · ${SITE.name}` }, { name: "robots", content: "noindex, nofollow" }];
 
 export const headers: Route.HeadersFunction = () => ({ "Cache-Control": "no-store", "X-Robots-Tag": "noindex, nofollow" });
 
 export default function AdminLogin() {
-  const { returnTo, error, password, feishu } = useLoaderData<typeof loader>();
-  const message = error ? (ERRORS[error] ?? ERRORS.wrong) : !password ? ERRORS.unset : null;
+  const { returnTo, error, password, feishu, sso } = useLoaderData<typeof loader>();
+  const message = error ? (ERRORS[error] ?? ERRORS.wrong) : !password && !sso ? ERRORS.unset : null;
   return (
     <div className="flex min-h-dvh items-center justify-center bg-bg px-4">
       <div className="w-full max-w-[360px]">
         <div className="flex items-center justify-center gap-2">
           <Wordmark size={26} className="text-ink" />
-          <span className="text-[15px] font-semibold text-ink-3">后台</span>
+          <span className="text-[15px] font-semibold text-ink-3">内部资讯</span>
         </div>
+        {sso && <div className="card mt-8 p-6">
+          <p className="mb-4 text-sm text-ink-3">使用公司账号访问游戏行业资讯。</p>
+          <a href={`/api/auth/sso/start?${new URLSearchParams({ return: returnTo })}`} className={`${buttonClass("primary", "lg")} w-full`}>公司账号登录</a>
+        </div>}
+        {password && <details open={!sso || !!error} className="mt-5">
+          <summary className="cursor-pointer text-center text-sm text-ink-3">管理员备用登录</summary>
         <form method="post" action="/api/auth/password" className="card mt-8 p-6">
           <input type="hidden" name="return" value={returnTo} />
           <label htmlFor="password" className="block text-[13px] font-medium text-ink-2">
@@ -45,7 +51,7 @@ export default function AdminLogin() {
             type="password"
             autoComplete="current-password"
             required
-            autoFocus
+            autoFocus={!sso}
             className="mt-2 h-10 w-full rounded-full border border-line-strong bg-surface px-4 text-[14px] text-ink outline-none transition-colors focus:border-accent"
           />
           {message && (
@@ -62,6 +68,7 @@ export default function AdminLogin() {
             </a>
           )}
         </form>
+        </details>}
         <p className="mt-6 text-center text-[12px] text-ink-4">
           <a href="/" className="hover:text-ink-2">
             回到 {SITE.name}

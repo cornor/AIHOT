@@ -7,6 +7,7 @@ import { registerSite } from "./routes/site.ts";
 import { registerLeaderboard } from "./routes/leaderboard.ts";
 import { registerOg } from "./routes/og.ts";
 import { registerAdminAuth } from "./routes/admin-auth.ts";
+import { registerSsoAuth } from "./routes/sso-auth.ts";
 import { registerAdmin } from "./routes/admin.ts";
 import { registerIngest } from "./routes/ingest.ts";
 import { registerV1, registerV1Fallbacks } from "./routes/v1.ts";
@@ -68,6 +69,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   if (FEATURES.leaderboard) registerLeaderboard(app);
   registerOg(app);
   registerAdminAuth(app);
+  registerSsoAuth(app);
   registerAdmin(app);
 
   registerIngest(app);

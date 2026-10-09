@@ -32,6 +32,7 @@ const GROUPS: Array<{ title: string; rows: Row[] }> = [
   {
     title: "偏好",
     rows: [
+      { to: "/account", label: "我的账号", icon: <IconGrid size={18} /> },
       { to: "/hot", label: "热点榜", icon: <IconFlame size={18} /> },
       { to: "/starred", label: "收藏", icon: <IconBookmark size={18} /> },
     ],

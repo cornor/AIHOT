@@ -1,6 +1,6 @@
 # 游戏研发情报部署
 
-服务器 `/opt/gamehot` 使用本目录的 Compose 配置，宿主机现有 Nginx 提供 HTTP。HTTPS 证书已申请，暂不启用强制跳转。
+服务器 `/opt/gamehot` 使用本目录的 Compose 配置，宿主机 Nginx 提供 HTTPS，HTTP 自动跳转。证书使用 `/etc/nginx/ssl/paoyou.com.pem` 与 `paoyou.com.key`。
 
 ```bash
 cd /opt/gamehot
@@ -12,9 +12,9 @@ bash deploy/gamehot/backup.sh
 
 私有配置为 `.env`、`private/werss.env`，数据保存在 `private/`。两者不进入 Git 和镜像构建上下文。模型密钥仅供后端使用。
 
-WeRSS 入口：`http://gamehot.paoyou.com/werss/`。先登录站点管理员，再登录 WeRSS，进入微信读书页面扫码。采集器通过内部回环地址访问 RSS，每轮之后等待 4 小时；启动时立即执行一轮。
+WeRSS 入口：`https://gamehot.paoyou.com/werss/`。先登录站点管理员，再登录 WeRSS，进入微信读书页面扫码。采集器通过内部回环地址访问 RSS，每轮之后等待 4 小时；启动时立即执行一轮。
 
-本站用于公司内部，`private/site-access.conf` 始终包含管理员访问校验，资讯、RSS、API 和 MCP 均不对外匿名开放。WeRSS 也始终要求管理员会话。使用者已明确无需公开条款与隐私文案确认。
+本站用于公司内部，`nginx-locations.conf` 对全站执行读者或管理员访问校验，资讯、RSS、API 和 MCP 均不对外匿名开放。WeRSS 也始终要求管理员会话。使用者已明确无需公开条款与隐私文案确认。
 
 更新前执行备份，构建固定版本后停稳 worker 和 collector，再运行 setup 并启动各服务。回退时先停止处理，保存服务器新增数据，再恢复匹配版本和备份；只允许一端运行采集和模型任务。
 
@@ -51,7 +51,7 @@ docker compose --env-file .env -f deploy/gamehot/compose.yaml up -d --no-deps co
 
 宿主机 `gamehot-monitor.timer` 每 10 分钟执行一次只读检查，独立于 Docker 和 worker。复用私有飞书机器人配置；不访问微信读书授权接口、不调用模型、不自动修改服务。
 
-检查 Docker、Nginx、备份 cron、六个容器健康、HTTP 入口、数据库查询、worker 心跳、DeepSeek 调用失败、文章处理积压、备份和磁盘空间。模型调用失败须最近一次成功后累计至少 3 次失败，且之后没有成功回执；不会因为一段时间没有新请求就宣称恢复。文章处理异常阈值是至少 10 篇等待超过两小时或至少 3 篇处理失败；磁盘 90% 起提醒。worker 心跳先以 20 分钟未更新判异常，再经过持续异常确认。
+检查 Docker、Nginx、备份 cron、六个容器健康、HTTPS 入口、数据库查询、worker 心跳、DeepSeek 调用失败、文章处理积压、备份和磁盘空间。模型调用失败须最近一次成功后累计至少 3 次失败，且之后没有成功回执；不会因为一段时间没有新请求就宣称恢复。文章处理异常阈值是至少 10 篇等待超过两小时或至少 3 篇处理失败；磁盘 90% 起提醒。worker 心跳先以 20 分钟未更新判异常，再经过持续异常确认。
 
 低频规则：连续观测异常至少 20 分钟才告警；同一问题每 24 小时最多重复一次，反复恢复/失败也不绕过此限制。多个问题和恢复合并成一条，运维通知之间至少间隔 6 小时（包括发送失败后的重试）；正常时不发日报。恢复也需至少 20 分钟健康观测，且只对已通知的问题发送。新的故障可能因全局间隔延后通知。这些限制不改变原有每 4 小时一轮的采集概况和采集时才执行的授权检查。
 
@@ -70,3 +70,5 @@ journalctl -u gamehot-monitor.service -n 20 --no-pager
 ```
 
 整台主机关机、断网或监控自身停掉时，无法从这台主机发送即时提醒；这需要另行配置独立外部监控。宿主机正常时，即使 Docker 或业务容器停掉，此监控仍可发送提醒。
+
+公司登录配置、权限开通及回退步骤见 [SSO 运维说明](../../docs/gamehot-sso.md)。

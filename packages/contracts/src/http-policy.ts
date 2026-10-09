@@ -114,6 +114,7 @@ export const OAUTH_PROBE_PATHS = [
  * paths such as /feedback never fall into /feed.
  */
 export const API_OWNED_PATTERNS: RegExp[] = [
+  /^\/sso\/callback$/,
   /^\/api\//,
   /^\/feed(\.xml|\/.*)?$/,
   /^\/(rss|rss\.xml|atom\.xml)$/,
