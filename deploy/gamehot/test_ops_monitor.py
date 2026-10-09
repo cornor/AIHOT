@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import Mock
-from ops_monitor import Monitor, database_findings, backup_finding, DEBOUNCE, SEND_INTERVAL, REPEAT_INTERVAL
+from ops_monitor import Monitor, database_findings, collection_findings, backup_finding, DEBOUNCE, SEND_INTERVAL, REPEAT_INTERVAL
 from backup_status import record
 
 
@@ -97,6 +97,25 @@ class MonitorTest(unittest.TestCase):
         self.assertFalse(database_findings(data)['model.calls'][0])
         data['model_last_failed'] = 400; data['model_failed'] = 3
         self.assertTrue(database_findings(data)['model.calls'][0])
+
+    def test_paused_collection_alerts_even_with_healthy_services_and_waits_for_debounce(self):
+        findings = collection_findings(False, {'collection_sources': 11, 'collection_sync_age': 100000})
+        self.assertTrue(findings['collector.paused'][0])
+        self.assertIsNone(findings['collector.sync'][0])
+        self.tick(findings)
+        self.sender.assert_not_called()
+        self.tick(findings, DEBOUNCE)
+        self.assertEqual(self.sender.call_count, 1)
+        self.assertIn('自动采集已暂停', self.sender.call_args.args[0])
+        self.tick(findings, DEBOUNCE + SEND_INTERVAL)
+        self.assertEqual(self.sender.call_count, 1)
+
+    def test_collection_sync_checks_success_instead_of_new_article_count(self):
+        for age in (None, 8 * 3600 + 1):
+            self.assertTrue(collection_findings(True, {'collection_sources': 11, 'collection_sync_age': age})['collector.sync'][0])
+        self.assertFalse(collection_findings(True, {'collection_sources': 11, 'collection_sync_age': 3600})['collector.sync'][0])
+        for enabled, data in ((None, None), (True, None), (True, {'collection_sources': 0}), (False, {'collection_sources': 11})):
+            self.assertIsNone(collection_findings(enabled, data)['collector.sync'][0])
 
     def test_backup_failure_retains_last_success_and_detects_staleness(self):
         (self.root / 'private').mkdir()

@@ -102,7 +102,9 @@ SQL = """SELECT json_build_object(
  'model_last_failed', (SELECT extract(epoch from max(started_at)) FROM receipt_attempts WHERE origin='live' AND service IN ('llm','deepseek') AND status='failed'),
  'model_last_ok', (SELECT extract(epoch from max(started_at)) FROM receipt_attempts WHERE origin='live' AND service IN ('llm','deepseek') AND status='received'),
  'waiting', (SELECT count(*) FROM articles WHERE processing_state='new' AND discovered_at<now()-interval '2 hours'),
- 'failed', (SELECT count(*) FROM articles WHERE processing_state='failed')
+ 'failed', (SELECT count(*) FROM articles WHERE processing_state='failed'),
+ 'collection_sources', (SELECT count(*) FROM sources WHERE enabled AND id LIKE 'werss-%'),
+ 'collection_sync_age', (SELECT extract(epoch from now()-max(last_ok_at)) FROM sources WHERE enabled AND id LIKE 'werss-%')
 );"""
 
 
@@ -115,6 +117,19 @@ def database_findings(data):
         'model.calls': (model_bad, 'DeepSeek 调用累计至少 3 次失败，期间及之后尚无成功回执' if model_bad else 'DeepSeek 已有后续成功回执'),
         'model.backlog': (data['waiting'] >= 10 or data['failed'] >= 3,
                           f"文章处理队列：等待超过两小时 {data['waiting']} 篇，处理失败 {data['failed']} 篇"),
+    }
+
+
+def collection_findings(enabled, data):
+    # Only inspect local configuration and RSS sync records, never WeRead authorization.
+    paused = None if enabled is None else not enabled
+    stale = None
+    if enabled and data is not None and data.get('collection_sources', 0) > 0:
+        age = data.get('collection_sync_age')
+        stale = age is None or age > 8 * 3600
+    return {
+        'collector.paused': (paused, '自动采集已暂停，不会抓取新文章；需验证上游接口后恢复采集' if paused else '自动采集开关已开启；是否同步成功由同步记录检查确认'),
+        'collector.sync': (stale, '自动采集已开启，但超过 8 小时没有成功 RSS 同步（或从未成功）；请检查采集器及上游接口' if stale else '最近 8 小时内有成功 RSS 同步'),
     }
 
 
@@ -131,11 +146,18 @@ def backup_finding(path, now):
 def observations(root=ROOT, now=None):
     now = time.time() if now is None else now
     found = {}
+    collect_enabled = None
+    sync_data = None
     for service in ('docker', 'nginx', 'cron'):
         try: healthy = command(['systemctl', 'is-active', service]) == 'active'
         except Exception: healthy = False
         found['service.' + service] = (not healthy, service + ' 服务运行状态')
     if not found['service.docker'][0]:
+        try:
+            flag = command(['docker', 'exec', 'gamehot-collector-1', 'python3', '-c', "import os;print(os.getenv('COLLECT_ENABLED', ''))"])
+            collect_enabled = {'true': True, 'false': False}.get(flag)
+        except Exception:
+            pass  # Container/Docker failures are reported separately; do not invent a mode.
         for name in ('db', 'api', 'web', 'worker', 'werss', 'collector'):
             try:
                 value = json.loads(command(['docker', 'inspect', '--format', '{{json .State}}', 'gamehot-' + name + '-1']))
@@ -144,10 +166,12 @@ def observations(root=ROOT, now=None):
             found['container.' + name] = (not healthy, name + ' 容器运行和健康检查')
         try:
             data = json.loads(command(['docker', 'exec', 'gamehot-db-1', 'psql', '-U', 'gamehot', '-d', 'gamehot', '-Atc', SQL]))
+            sync_data = data
             found.update(database_findings(data))
             found['database.probe'] = (False, '数据库查询检查')
         except Exception:
             found['database.probe'] = (True, '无法查询数据库，模型和后台任务状态暂不可确认')
+    found.update(collection_findings(collect_enabled, sync_data))
     try:
         request = urllib.request.Request('https://gamehot.paoyou.com/api/health')
         try:
