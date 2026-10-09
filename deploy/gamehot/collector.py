@@ -114,7 +114,9 @@ def cycle(notices):
                  f'本轮耗时：{round(time.monotonic() - started)} 秒；下一轮约 4 小时后。']
         if failures: lines.append('采集失败：' + '、'.join(failures))
         if import_failed: lines.append('导入失败：' + '、'.join(import_failed))
-        lines.append('站点：http://gamehot.paoyou.com')
+        if os.environ.get('WERSS_LATEST_ONLY') == 'true':
+            lines.append('临时模式：每个公众号每轮只取最新一篇并去重；两轮之间的其他文章可能漏采，不代表完整同步。')
+        lines.append('站点：https://gamehot.paoyou.com')
         notices.enqueue('采集结束（有异常）' if failures or incomplete else '采集完成', lines)
         if failures and os.environ.get('FEISHU_COLLECTOR_ENABLED') == 'true':
             check_authorization(notices)

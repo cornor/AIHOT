@@ -14,6 +14,8 @@ bash deploy/gamehot/backup.sh
 
 WeRSS 入口：`https://gamehot.paoyou.com/werss/`。先登录站点管理员，再登录 WeRSS，进入微信读书页面扫码。采集器通过内部回环地址访问 RSS，每轮之后等待 4 小时；启动时立即执行一轮。
 
+临时最新单篇模式：服务器 `.env` 设置 `WERSS_LATEST_ONLY=true`，重建 WeRSS 和 collector 容器使其同时生效；`COLLECT_ENABLED=true` 启用采集。每个公众号每轮只读取最新一篇，重复文章跳过，不保证补齐两轮之间的其他文章。正文和真实发布时间来自微信读书返回的原文 HTML，缺失时报告失败，不使用采集时间代替发布时间。每轮飞书概况注明覆盖范围。默认 `WERSS_LATEST_ONLY=false` 使用文章列表；列表失败不会悄悄切换为单篇模式。
+
 本站用于公司内部，`nginx-locations.conf` 对全站执行读者或管理员访问校验，资讯、RSS、API 和 MCP 均不对外匿名开放。WeRSS 也始终要求管理员会话。使用者已明确无需公开条款与隐私文案确认。
 
 更新前执行备份，构建固定版本后停稳 worker 和 collector，再运行 setup 并启动各服务。回退时先停止处理，保存服务器新增数据，再恢复匹配版本和备份；只允许一端运行采集和模型任务。
@@ -45,7 +47,7 @@ docker compose --env-file .env -f deploy/gamehot/compose.yaml up -d --no-deps co
 
 前端由该镜像中的源码重建，`patch-ui.mjs` 适配 `/werss/`，`patch-backend.py` 设置 ASGI root path。
 
-`werss/weread_mp.py` 来源于 [rachelos/we-mp-rss](https://github.com/rachelos/we-mp-rss) 提交 `126993c81a00466e9a6bbab041eef34ab27abe9c`；本地修改移除了只用封面信息生成文章的回退，避免伪造发布日期。MIT 许可证保存在 `werss/LICENSE`。
+`werss/weread_mp.py` 来源于 [rachelos/we-mp-rss](https://github.com/rachelos/we-mp-rss) 提交 `126993c81a00466e9a6bbab041eef34ab27abe9c`；本地修改移除了只用封面信息生成文章的回退，增加显式启用、读取正文真实日期的最新单篇模式。MIT 许可证保存在 `werss/LICENSE`。离线验证可在该镜像内使用 `/app/env_x86_64/bin/python3 -m unittest discover -s /tests -p 'test_*.py'`，把 `werss/` 只读挂载到 `/tests` 并使用 `--network none`。
 
 ## 低频运维通知
 

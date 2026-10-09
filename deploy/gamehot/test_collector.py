@@ -125,6 +125,13 @@ class NotificationsTest(unittest.TestCase):
         self.assertIn('结果不完整', text)
         self.assertNotIn('secret-url', text)
 
+    def test_latest_only_summary_discloses_incomplete_coverage(self):
+        with patch.dict(os.environ, {'WERSS_LATEST_ONLY': 'true'}):
+            text = self.run_cycle(subprocess.CompletedProcess([], 0, '\n'.join([
+                json.dumps({'source': name, 'created': 0, 'revised': 0}) for name in ['测试甲', '测试乙']]), ''))
+        self.assertIn('每个公众号每轮只取最新一篇', text)
+        self.assertIn('其他文章可能漏采', text)
+
     def test_collection_disabled_sends_no_fake_summary(self):
         with patch.dict(os.environ, {'COLLECT_ENABLED': 'false', 'FEISHU_COLLECTOR_ENABLED': 'true'}), \
              patch.object(collector, 'login') as login, patch.object(collector, 'check_authorization') as auth:

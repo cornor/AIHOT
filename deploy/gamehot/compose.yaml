@@ -101,6 +101,7 @@ services:
     environment:
       TZ: Asia/Shanghai
       ENABLE_JOB: "False"
+      WERSS_LATEST_ONLY: ${WERSS_LATEST_ONLY:-false}
       WERSS_AUTH_WEB: "True"
       MAX_PAGE: "1"
       SPAN_INTERVAL: "20"
@@ -132,6 +133,7 @@ services:
     environment:
       <<: *app-env
       WERSS_FEEDS_FILE: /app/deploy/gamehot/feeds.json
+      WERSS_LATEST_ONLY: ${WERSS_LATEST_ONLY:-false}
       PYTHONUNBUFFERED: "1"
       COLLECT_ENABLED: ${COLLECT_ENABLED:-false}
       MODEL_CALLS_ENABLED: "false"

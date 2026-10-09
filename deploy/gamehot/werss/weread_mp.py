@@ -1,6 +1,8 @@
 """Collect WeChat Official Account articles through WeRead Web."""
 
 import time
+import os
+import re
 from urllib.parse import quote
 
 import requests
@@ -115,6 +117,23 @@ def extract_mp_content(html: str) -> str:
     for element in content.select("script, style"):
         element.decompose()
     return content.decode_contents().strip()
+
+
+def extract_mp_publication_time(html: str) -> int:
+    """Read the original article's literal ct metadata, never the collection clock."""
+    soup = BeautifulSoup(html or "", "html.parser")
+    values = set()
+    for script in soup.find_all("script"):
+        if script.find_parent(id="js_content"):
+            continue
+        for match in re.finditer(r'''\b(?:var|let|const)\s+ct\s*=\s*["']?(\d{10})["']?\s*;''', script.get_text()):
+            values.add(int(match.group(1)))
+    if len(values) != 1:
+        raise WereadMPAPIError("missing_publication_time", "Original publication time missing or ambiguous", retriable=False)
+    published = values.pop()
+    if not 1293840000 <= published <= time.time() + 3600:
+        raise WereadMPAPIError("invalid_publication_time", "Original publication time is out of range", retriable=False)
+    return published
 
 
 class MpsWereadMP(MpsWeread):
@@ -247,7 +266,7 @@ class MpsWereadMP(MpsWeread):
         finally:
             session.close()
 
-    def _get_mp_content(self, review_id: str):
+    def _get_mp_document(self, review_id: str):
         headers = self._request_headers()
         headers["Accept"] = "text/html,application/xhtml+xml,*/*"
         try:
@@ -257,6 +276,7 @@ class MpsWereadMP(MpsWeread):
                 headers=headers,
                 proxies=self._get_proxies(),
                 timeout=(10, 30),
+                allow_redirects=False,
             )
         except requests.RequestException as exc:
             raise WereadMPAPIError("network_error", str(exc)) from exc
@@ -265,7 +285,10 @@ class MpsWereadMP(MpsWeread):
                 response.status_code,
                 f"article content returned HTTP {response.status_code}",
             )
-        return extract_mp_content(response.text)
+        return response.text
+
+    def _get_mp_content(self, review_id: str):
+        return extract_mp_content(self._get_mp_document(review_id))
 
     def _collect_latest_via_cover(
         self,
@@ -276,13 +299,40 @@ class MpsWereadMP(MpsWeread):
         CallBack=None,
         Item_Over_CallBack=None,
     ) -> int:
-        """兜底方案：通过 /api/mp/cover 只采集最新一篇文章。"""
-        # Preserve actual source publication times. Cover-only responses lack them.
-        raise WereadMPAPIError(
-            "article_list_unavailable",
-            "Article list unavailable; refusing cover fallback with an invented publication time",
-            retriable=False,
-        )
+        """Opt-in latest-only mode, with publication time taken from the article HTML."""
+        cover = self._get_mp_cover(book_id)
+        review_id = str(cover.get("reviewId") or "").strip()
+        prefix = book_id + "_"
+        title = str(cover.get("title") or "").strip()
+        if not title or not review_id.startswith(prefix) or not re.fullmatch(r"[A-Za-z0-9_~-]+", review_id[len(prefix):]):
+            raise WereadMPAPIError("invalid_cover", "Latest article identity is missing or does not match this feed", retriable=False)
+        if self._is_article_gathered(Mps_id, review_id):
+            self.response_valid = True
+            return self._get_feed_update_time(Mps_id)
+        interval = self._get_content_interval()
+        if interval:
+            time.sleep(interval)
+        html = self._get_mp_document(review_id)
+        content = extract_mp_content(html)
+        published = extract_mp_publication_time(html)
+        if not content:
+            raise WereadMPAPIError("invalid_content", "Latest article body is empty")
+        item = {
+            "aid": review_id, "id": review_id, "mp_id": Mps_id,
+            "title": title, "link": build_mp_link_from_review_id(review_id, book_id),
+            "cover": cover.get("pic") or "", "digest": cover.get("digest") or "",
+            "content": content if gather_content else "",
+            "create_time": published, "update_time": published,
+        }
+        if CallBack is not None:
+            count = len(self.articles)
+            super().FillBack(CallBack=CallBack, data=item, Ext_Data={"mp_title": Mps_title, "mp_id": Mps_id})
+            if len(self.articles) != count + 1 or not self._is_article_gathered(Mps_id, review_id):
+                raise WereadMPAPIError("save_failed", "Latest article could not be saved")
+        if Item_Over_CallBack is not None:
+            Item_Over_CallBack(item)
+        self.response_valid = True
+        return published
 
     def _collect_via_article_list(
         self,
@@ -401,10 +451,8 @@ class MpsWereadMP(MpsWeread):
     ):
         """Collect one existing WeChat feed without changing its RSS identity.
 
-        主路径走 ``/web/mp/articles`` 列表接口做增量补抓：从最新一页开始翻页，
-        采集所有尚未入库的文章，遇到已入库文章即停止（上一轮到这一轮之间漏采的
-        文章会一并补齐）。列表接口不可用（如 -2012 登录超时 / -2041 等）时回退到
-        ``/api/mp/cover`` 只取最新一篇的兜底逻辑，保证采集不中断。
+        默认从列表增量采集；WERSS_LATEST_ONLY=true 时直接读取最新单篇。
+        最新单篇不能保证回补两轮间的其他文章，必须保留真实发布时间。
         """
         self.articles = []
         self.aids = []
@@ -444,7 +492,12 @@ class MpsWereadMP(MpsWeread):
 
         print_info(f"微信读书公众号采集模式: {Mps_title} ({book_id})")
         try:
-            try:
+            if os.environ.get("WERSS_LATEST_ONLY") == "true":
+                latest_publish_time = self._collect_latest_via_cover(
+                    book_id, Mps_id, Mps_title, gather_content,
+                    CallBack=CallBack, Item_Over_CallBack=Item_Over_CallBack,
+                )
+            else:
                 latest_publish_time = self._collect_via_article_list(
                     book_id,
                     Mps_id,
@@ -452,22 +505,6 @@ class MpsWereadMP(MpsWeread):
                     gather_content,
                     start_page,
                     MaxPage,
-                    CallBack=CallBack,
-                    Item_Over_CallBack=Item_Over_CallBack,
-                )
-            except WereadMPAPIError as exc:
-                if self.response_valid:
-                    # 列表接口本身可用（已成功翻页），属于正文缺失或补抓不完整
-                    # 等真实错误，直接上抛，下次任务重试。
-                    raise
-                print_warning(
-                    f"[{Mps_title}] 文章列表接口不可用({exc})，回退到仅取最新一篇"
-                )
-                latest_publish_time = self._collect_latest_via_cover(
-                    book_id,
-                    Mps_id,
-                    Mps_title,
-                    gather_content,
                     CallBack=CallBack,
                     Item_Over_CallBack=Item_Over_CallBack,
                 )
