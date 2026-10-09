@@ -5,6 +5,7 @@ node_modules/
 dist/
 .cache/
 .DS_Store
+__pycache__/
 .data/
 private/
 
