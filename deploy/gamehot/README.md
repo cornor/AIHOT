@@ -46,3 +46,27 @@ docker compose --env-file .env -f deploy/gamehot/compose.yaml up -d --no-deps co
 前端由该镜像中的源码重建，`patch-ui.mjs` 适配 `/werss/`，`patch-backend.py` 设置 ASGI root path。
 
 `werss/weread_mp.py` 来源于 [rachelos/we-mp-rss](https://github.com/rachelos/we-mp-rss) 提交 `126993c81a00466e9a6bbab041eef34ab27abe9c`；本地修改移除了只用封面信息生成文章的回退，避免伪造发布日期。MIT 许可证保存在 `werss/LICENSE`。
+
+## 低频运维通知
+
+宿主机 `gamehot-monitor.timer` 每 10 分钟执行一次只读检查，独立于 Docker 和 worker。复用私有飞书机器人配置；不访问微信读书授权接口、不调用模型、不自动修改服务。
+
+检查 Docker、Nginx、备份 cron、六个容器健康、HTTP 入口、数据库查询、worker 心跳、DeepSeek 调用失败、文章处理积压、备份和磁盘空间。模型调用失败须最近一次成功后累计至少 3 次失败，且之后没有成功回执；不会因为一段时间没有新请求就宣称恢复。文章处理异常阈值是至少 10 篇等待超过两小时或至少 3 篇处理失败；磁盘 90% 起提醒。worker 心跳先以 20 分钟未更新判异常，再经过持续异常确认。
+
+低频规则：连续观测异常至少 20 分钟才告警；同一问题每 24 小时最多重复一次，反复恢复/失败也不绕过此限制。多个问题和恢复合并成一条，运维通知之间至少间隔 6 小时（包括发送失败后的重试）；正常时不发日报。恢复也需至少 20 分钟健康观测，且只对已通知的问题发送。新的故障可能因全局间隔延后通知。这些限制不改变原有每 4 小时一轮的采集概况和采集时才执行的授权检查。
+
+备份脚本互斥执行，成功须验证 PostgreSQL 备份目录、SQLite 完整性和文件包可读取，记录在 `private/backup-status.json`；失败保留最近成功时间。最近备份失败或超过 30 小时没有成功记录会告警。仅清理带 `completed` 标记的旧备份，保留最新 7 份；早期无标记快照保留，避免误删。
+
+状态持久化在 `private/ops-monitor-state.json`。机器人地址只在私有配置，不进入日志、通知正文或 Git。
+
+```bash
+install -m 644 deploy/gamehot/gamehot-monitor.service /etc/systemd/system/
+install -m 644 deploy/gamehot/gamehot-monitor.timer /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now gamehot-monitor.timer
+systemctl start gamehot-monitor.service
+systemctl list-timers gamehot-monitor.timer
+journalctl -u gamehot-monitor.service -n 20 --no-pager
+```
+
+整台主机关机、断网或监控自身停掉时，无法从这台主机发送即时提醒；这需要另行配置独立外部监控。宿主机正常时，即使 Docker 或业务容器停掉，此监控仍可发送提醒。

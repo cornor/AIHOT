@@ -1,0 +1,10 @@
+[Unit]
+Description=Check Gamehot operational health every ten minutes
+
+[Timer]
+OnBootSec=5min
+OnUnitInactiveSec=10min
+Unit=gamehot-monitor.service
+
+[Install]
+WantedBy=timers.target

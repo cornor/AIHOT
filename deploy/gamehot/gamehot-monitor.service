@@ -1,0 +1,13 @@
+[Unit]
+Description=Gamehot low-frequency operational alerts
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/gamehot
+EnvironmentFile=/opt/gamehot/private/feishu-collector.env
+Environment=FEISHU_OPS_ENABLED=true
+ExecStart=/usr/bin/python3 /opt/gamehot/deploy/gamehot/ops_monitor.py
+TimeoutStartSec=5min
+UMask=0077
