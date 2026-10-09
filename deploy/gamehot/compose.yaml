@@ -124,6 +124,7 @@ services:
       retries: 3
   collector:
     <<: *app
+    image: gamehot-app:${COLLECTOR_VERSION:-${DEPLOY_VERSION:-latest}}
     env_file:
       - ../../private/werss.env
     command: [python3, deploy/gamehot/collector.py, --watch]

@@ -60,4 +60,4 @@ if __name__ == "__main__":
                 raise SystemExit(1)
         if "--watch" not in sys.argv:
             break
-        stop.wait(1800)
+        stop.wait(4 * 60 * 60)

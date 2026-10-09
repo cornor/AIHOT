@@ -12,7 +12,7 @@ bash deploy/gamehot/backup.sh
 
 私有配置为 `.env`、`private/werss.env`，数据保存在 `private/`。两者不进入 Git 和镜像构建上下文。模型密钥仅供后端使用。
 
-WeRSS 入口：`http://gamehot.paoyou.com/werss/`。先登录站点管理员，再登录 WeRSS，进入微信读书页面扫码。采集器通过内部回环地址访问 RSS，每轮之后等待 30 分钟。
+WeRSS 入口：`http://gamehot.paoyou.com/werss/`。先登录站点管理员，再登录 WeRSS，进入微信读书页面扫码。采集器通过内部回环地址访问 RSS，每轮之后等待 4 小时；启动时立即执行一轮。
 
 本站用于公司内部，`private/site-access.conf` 始终包含管理员访问校验，资讯、RSS、API 和 MCP 均不对外匿名开放。WeRSS 也始终要求管理员会话。使用者已明确无需公开条款与隐私文案确认。
 
