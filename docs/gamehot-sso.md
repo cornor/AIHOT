@@ -11,9 +11,9 @@
 5. 以不可变的 account 作为唯一身份，只保存 account、姓名及权限；不保存公司 token、手机号或微信身份。本站另发随机的 8 小时会话，数据库仅存会话 hash。Cookie 为 HttpOnly、SameSite=Lax，生产使用 Secure。
 6. 读者可浏览资讯及数据接口；管理员可操作后台和访问 WeRSS。每次请求检查账号当前状态。停用、改角色或重新保存权限均撤销该账号所有已有本站会话。管理写操作要求 CSRF token，权限修改记录审计。
 
-`SSO_ENABLED=true` 才启用公司登录。默认 `SSO_ALLOW_ALL=false`：新账号首次成功验证公司身份后会记为“未开通”，无法访问资讯。管理员进入 **后台 → 账号与权限**，填写准确 account、选择读者或管理员、勾选允许访问、填写原因并保存；也可以提前开通。
+`SSO_ENABLED=true` 才启用公司登录。按使用者要求，本站生产使用 `SSO_ALLOW_ALL=true`：通过公司 SSO 验证的新账号自动获得普通浏览权限，无需管理员开通；管理后台和 WeRSS 仍仅限管理员。管理员进入 **后台 → 账号与权限**，可以调整角色或停用账号。
 
-仅在业务负责人明确允许全部公司 SSO 账号阅读时，才设置 `SSO_ALLOW_ALL=true`；新账号自动获得读者权限，不会获得管理员权限，已停用账号也不会自动恢复。配置更改后重启 API。
+自动开通仅授予读者权限，不会获得管理员权限，已被管理员停用的账号也不会自动恢复。若以后需要逐个审批，再设 `SSO_ALLOW_ALL=false`。配置更改后重启 API；从审批模式切换时，先前产生的待开通账号须按授权补开通，不能将明确停用的账号批量恢复。
 
 退出仅清理本站会话。公司文档未提供全局退出、离职事件或 token 有效期协议，因此公司账号停用不会自动即时撤销本站已有会话；需在本站停用该账号，或等待最多 8 小时会话到期。本站不推断公司 SSO 返回的 account 天然属于有阅读资格的员工。
 
@@ -28,7 +28,7 @@ API、Web、WeRSS 仅在容器网络或宿主机回环端口开放。Nginx 的 `
 ## 发布与回退
 
 - 新增兼容迁移 `0042_company_sso.sql`。运行迁移前执行 `bash deploy/gamehot/backup.sh` 并验证成功。
-- 应用 `.env` 设置 HTTPS 的 SITE_URL、SSO_ENABLED=true、SSO_ALLOW_ALL=false。不将任何凭据放入前端、Git 或镜像。
+- 应用 `.env` 设置 HTTPS 的 SITE_URL、SSO_ENABLED=true、SSO_ALLOW_ALL=true。不将任何凭据放入前端、Git 或镜像。
 - 更新 api/web/worker/collector 应用镜像。`WERSS_VERSION` 可独立固定原生 WeRSS 镜像，避免跟随应用版本构建。
 - 修改 Nginx 配置后先 `nginx -t`，成功再 reload。验证 HTTPS 证书、未登录拦截、备用密码登录、SSO 跳转及读者/管理员边界。
 - 若应用需回退，先停止 worker/collector，恢复旧应用版本与旧 compose 配置，但保留 HTTPS。旧版不支持公司 SSO，应把全站 auth_request 临时改回管理员校验；使用原管理员密码。不要删除新增表或回滚已有业务数据。涉及恢复备份时先保存发布后新增数据。
