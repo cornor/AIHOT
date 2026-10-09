@@ -52,11 +52,12 @@ def login():
     return request('/auth/login', {'username': os.environ['USERNAME'], 'password': os.environ['PASSWORD']}, form=True)['access_token']
 
 
-def check_authorization(notices):
+def check_authorization(notices, token=None):
     try:
-        status = auth_status(request('/weread', token=login()))
+        status = auth_status(request('/weread', token=token or login()))
         notices.authorization(status, os.environ.get('COLLECT_ENABLED') == 'true')
         print('WeRead authorization check: ' + status, flush=True)
+        return status
     except Exception as exc:
         print('Authorization check failed: ' + type(exc).__name__, flush=True)
 
@@ -67,6 +68,9 @@ def cycle(notices):
         return
     feeds = json.loads(Path(os.environ.get("WERSS_FEEDS_FILE", ROOT / "deploy/gamehot/feeds.json")).read_text())
     token = login()
+    if os.environ.get('FEISHU_COLLECTOR_ENABLED') == 'true':
+        if check_authorization(notices, token) in ('expired', 'missing'):
+            return
     started = time.monotonic()
     gathered = 0
     succeeded = 0
@@ -112,6 +116,8 @@ def cycle(notices):
         if import_failed: lines.append('导入失败：' + '、'.join(import_failed))
         lines.append('站点：http://gamehot.paoyou.com')
         notices.enqueue('采集结束（有异常）' if failures or incomplete else '采集完成', lines)
+        if failures and os.environ.get('FEISHU_COLLECTOR_ENABLED') == 'true':
+            check_authorization(notices)
 
 
 if __name__ == "__main__":
@@ -119,15 +125,13 @@ if __name__ == "__main__":
     if '--notify-test' in sys.argv:
         notices.enqueue('飞书通知接通测试', [
             '已启用：每轮采集概况、微信读书授权过期及恢复提醒。',
-            '采集周期：每轮结束后等待 4 小时；授权检查：每 15 分钟一次。',
+            '采集周期：每轮结束后等待 4 小时；仅在采集时检查授权。',
             '当前采集开关：' + ('开启' if os.environ.get('COLLECT_ENABLED') == 'true' else '关闭'),
             '这是接通测试，不代表本轮采集已完成，也不是授权过期告警。'])
         notices.flush()
         raise SystemExit(1 if notices.state['pending'] else 0)
     next_cycle = 0
     while not stop.is_set():
-        if os.environ.get('FEISHU_COLLECTOR_ENABLED') == 'true':
-            check_authorization(notices)
         if time.monotonic() >= next_cycle:
             try:
                 cycle(notices)

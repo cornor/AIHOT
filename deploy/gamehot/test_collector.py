@@ -97,12 +97,13 @@ class NotificationsTest(unittest.TestCase):
         self.assertEqual(self.notices.state['auth_status'], 'expired')
         self.assertEqual(len(self.notices.state['pending']), 1)
 
-    def run_cycle(self, import_result, failed=False):
+    def run_cycle(self, import_result, failed=False, monitor=False):
         feeds = [{'name': '测试甲', 'feedId': 'a'}, {'name': '测试乙', 'feedId': 'b'}]
         path = Path(self.temp.name) / 'feeds.json'
         path.write_text(json.dumps(feeds))
         responses = [{'collected': 2}, collector.WeRSSError({'data': {'code': -2041}}) if failed else {'collected': 0}]
-        with patch.dict(os.environ, {'COLLECT_ENABLED': 'true', 'WERSS_FEEDS_FILE': str(path)}), \
+        with patch.dict(os.environ, {'COLLECT_ENABLED': 'true', 'WERSS_FEEDS_FILE': str(path),
+                                    'FEISHU_COLLECTOR_ENABLED': 'true' if monitor else 'false'}), \
              patch.object(collector, 'login', return_value='test'), patch.object(collector, 'request', side_effect=responses), \
              patch.object(collector.subprocess, 'run', return_value=import_result):
             collector.cycle(self.notices)
@@ -125,9 +126,30 @@ class NotificationsTest(unittest.TestCase):
         self.assertNotIn('secret-url', text)
 
     def test_collection_disabled_sends_no_fake_summary(self):
-        with patch.dict(os.environ, {'COLLECT_ENABLED': 'false'}), patch.object(collector, 'login') as login:
+        with patch.dict(os.environ, {'COLLECT_ENABLED': 'false', 'FEISHU_COLLECTOR_ENABLED': 'true'}), \
+             patch.object(collector, 'login') as login, patch.object(collector, 'check_authorization') as auth:
             collector.cycle(self.notices)
             login.assert_not_called()
+            auth.assert_not_called()
+        self.assertEqual(self.notices.state['pending'], [])
+
+    def test_failed_collection_rechecks_auth_without_periodic_polling(self):
+        with patch.object(collector, 'check_authorization', return_value='valid') as check:
+            self.run_cycle(subprocess.CompletedProcess([], 1, '', ''), failed=True, monitor=True)
+        self.assertEqual(check.call_count, 2)
+
+    def test_expired_authorization_skips_article_requests(self):
+        path = Path(self.temp.name) / 'feeds.json'
+        path.write_text('[{"name":"测试","feedId":"test"}]')
+        with patch.dict(os.environ, {'COLLECT_ENABLED': 'true', 'FEISHU_COLLECTOR_ENABLED': 'true',
+                                    'WERSS_FEEDS_FILE': str(path)}), \
+             patch.object(collector, 'login', return_value='test'), \
+             patch.object(collector, 'check_authorization', return_value='expired'), \
+             patch.object(collector, 'request') as articles, patch.object(collector.subprocess, 'run') as imports:
+            collector.cycle(self.notices)
+            articles.assert_not_called()
+            imports.assert_not_called()
+        # No completion summary: the auth checker owns the scan reminder.
         self.assertEqual(self.notices.state['pending'], [])
 
 
