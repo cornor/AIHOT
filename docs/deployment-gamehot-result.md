@@ -4,16 +4,16 @@
 
 ## 访问和运行状态
 
-- 网站：`http://gamehot.paoyou.com`。
-- 管理员后台：`http://gamehot.paoyou.com/admin`。
-- WeRSS：`http://gamehot.paoyou.com/werss/`。
-- 微信读书扫码页：`http://gamehot.paoyou.com/werss/weread`。
-- 公司内部使用：资讯、RSS、API、MCP 和 WeRSS 均要求站点管理员会话；WeRSS 另保留自己的管理员登录。
-- 按使用者要求先提供 HTTP。HTTPS 证书已申请并配置续期，暂未启用 443 或强制跳转。
+- 网站：`https://gamehot.paoyou.com`。
+- 管理员后台：`https://gamehot.paoyou.com/admin`。
+- WeRSS：`https://gamehot.paoyou.com/werss/`。
+- 微信读书扫码页：`https://gamehot.paoyou.com/werss/weread`。
+- 公司内部使用：资讯、RSS、API、MCP 要求已开通的公司读者或管理员会话；后台和 WeRSS 要求站点管理员权限，WeRSS 另保留自己的管理员登录。
+- 2026-10-09 按使用者授权启用 HTTPS，HTTP 自动跳转；使用 `/etc/nginx/ssl/paoyou.com.pem` 和对应私钥，现有通配符证书由运维更新，本次没有为它配置自动续期。
 
 服务器为 Ubuntu 26.04、x86_64，约 2 GB 内存、2 GB 交换空间。使用现有 Nginx，项目位于 `/opt/gamehot`，Docker Compose 项目名为 `gamehot`。
 
-数据库、API、网页、worker、WeRSS、collector 六个常驻服务已运行；数据库、API、网页和 WeRSS 健康检查通过。对外监听 HTTP 80 和原有 SSH 22；3000、8001 仅绑定回环地址，数据库没有发布宿主机端口。Docker 已设置开机启动，常驻容器配置异常重启与日志轮转。
+数据库、API、网页、worker、WeRSS、collector 六个常驻服务已运行；数据库、API、网页和 WeRSS 健康检查通过。对外监听 HTTPS 443、HTTP 80 和原有 SSH 22；3000、8001 仅绑定回环地址，数据库没有发布宿主机端口。Docker 已设置开机启动，常驻容器配置异常重启与日志轮转。
 
 worker 已启用正常模型任务。collector 已部署，当前 `COLLECT_ENABLED=false`，等待真实文章列表验证通过后启用。按使用者 2026-10-09 的要求，启用后逐个处理 11 个信源，每轮结束等待 4 小时；容器启动时立即执行一轮。
 
@@ -82,3 +82,15 @@ worker 已启用正常模型任务。collector 已部署，当前 `COLLECT_ENABL
 5. 验证一条新文章经 RSS 入库、DeepSeek 处理、摘要展示的完整链路；无新文章时记录去重与处理服务状态，等待实际新增。
 
 目前已扫码不等于文章采集可用；在完成上述验证前，不宣称实时采集已恢复。
+
+## 2026-10-09：公司 SSO 与 HTTPS 上线
+
+应用代码提交 `d4e5992` 已推送至使用者的 `cornor/AIHOT` 仓库。API、Web、worker、collector 使用 `gamehot-app:sso-20261009`，WeRSS 独立固定 `gamehot-werss:4b97c66`。兼容迁移 `0042_company_sso.sql` 已执行。发布前已生成并验证备份 `private/backups/20261009-152603`；旧环境、Compose 和 Nginx 配置另存于 `private/pre-sso-20261009/`。
+
+生产配置为 `SSO_ENABLED=true`、`SSO_ALLOW_ALL=false`，账号由管理员逐个开通；普通读者可读取资讯，管理后台和 WeRSS 仅供管理员。新增后台“账号与权限”和前台“我的账号”，原管理员密码继续作为备用登录。本站会话 8 小时，权限修改立即撤销该账号已有会话。
+
+已验证：582 项后端测试、31 项网页测试、24 项采集通知与监控离线测试、类型检查和构建通过；隔离浏览器验证了公司回调、地址栏 token 清除、读者权限边界、退出与失败回调。线上 HTTPS 证书验证通过，HTTP 308 跳转、匿名拦截、备用管理员登录、账号管理页面、资讯、RSS、公开 API、MCP 和站点冒烟均正常；WeRSS 的 HTTPS 登录、微信读书页面刷新及 WSS 通信通过。六个常驻服务运行，四个健康探针正常，15:29 运维监控 16 项检查均正常。证书私钥已改为 600。
+
+SSO 跳转目标、HTTPS 回调及会话 cookie 属性已在线核对；尚未由使用者亲自完成生产公司账号登录，不能把合成身份测试当作真实 SSO 全流程验证。使用者给出的管理员候选为 `yangjc` / `yangjiacheng`，尚未明确是哪一个，因此未给任一候选授予权限。可先完成一次公司登录，再在后台看到实际返回的 account 并按使用者确认开通。2026-10-09 本次发布验证时公司账号表为空。
+
+采集故障和开关保持原状态：`COLLECT_ENABLED=false`，未在 SSO 发布时启用文章采集。HTTPS 不代表微信读书文章列表故障已恢复。完整说明及维护步骤见 [公司 SSO 运维说明](gamehot-sso.md)。
