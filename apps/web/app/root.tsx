@@ -91,8 +91,8 @@ export default function App() {
   const meta = useLoaderData<typeof loader>();
   useHydratedFlag();
   const { pathname } = useLocation();
-  // The admin has its own chrome.
-  if (pathname === "/admin" || pathname.startsWith("/admin/")) return <Outlet />;
+  // Login and administration use their own layouts.
+  if (pathname === "/login" || pathname === "/admin" || pathname.startsWith("/admin/")) return <Outlet />;
   return (
     <SiteShell changelogVersion={meta.changelogVersion}>
       <Outlet />
@@ -126,7 +126,7 @@ export function ErrorBoundary() {
       </div>
     </div>
   );
-  // Admin errors stay inside the admin's own chrome.
-  if (pathname === "/admin" || pathname.startsWith("/admin/")) return body;
+  // Login and admin errors retain their standalone layouts.
+  if (pathname === "/login" || pathname === "/admin" || pathname.startsWith("/admin/")) return body;
   return <SiteShell changelogVersion={site?.changelogVersion ?? null}>{body}</SiteShell>;
 }
