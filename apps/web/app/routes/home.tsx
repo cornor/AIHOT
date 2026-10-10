@@ -50,7 +50,7 @@ export default function Home() {
   const { data, filters } = useLoaderData<typeof loader>();
   const title = filters.tag ? `#${filters.tag}` : "精选";
   return (
-    <div className="mx-auto w-full max-w-[1200px] pb-6">
+    <div className="pb-6">
       {/* Phones: brand bar, today's hot topics, then the feed under "最新精选". */}
       <div className="flex h-14 items-center justify-between lg:hidden">
         <Wordmark size={20} className="text-ink" />
