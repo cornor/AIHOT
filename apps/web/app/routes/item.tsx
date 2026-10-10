@@ -38,7 +38,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
     noindex: !item.indexable,
     jsonLd: breadcrumbLd([
       { name: SITE.name, path: "/" },
-      { name: item.selected ? "精选" : "全部动态", path: item.selected ? "/" : "/all" },
+      { name: item.selected ? "精选" : "全部动态", path: item.selected ? "/selected" : "/all" },
       { name: item.title, path: `/items/${item.id}` },
     ]),
   });
@@ -131,7 +131,7 @@ export default function ItemPage() {
 
   const back = () => {
     if (window.history.state?.idx > 0) navigate(-1);
-    else navigate(item.selected ? "/" : "/all");
+    else navigate(item.selected ? "/selected" : "/all");
   };
   const backButton = (
     <button type="button" onClick={back} className="-ml-1.5 inline-flex h-8 items-center gap-1.5 rounded-full px-1.5 text-[14px] text-ink-2 transition-colors hover:text-ink lg:text-[13px] lg:text-ink-3">

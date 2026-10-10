@@ -7,7 +7,7 @@ import { FEATURES } from "@aihot/industry/features";
 const at = process.argv.indexOf("--base");
 const base = (at > 0 ? process.argv[at + 1] : process.env.SITE_URL) ?? "http://localhost:3000";
 
-const PAGES = ["/", "/all", "/hot", "/daily", "/daily/archive", "/topics", "/starred", "/agent", "/about", "/changelog", "/feedback", "/terms", "/privacy", "/more", "/login"];
+const PAGES = ["/selected", "/all", "/hot", "/daily", "/daily/archive", "/topics", "/starred", "/agent", "/about", "/changelog", "/feedback", "/terms", "/privacy", "/more", "/login"];
 const MACHINE: Array<[path: string, type: RegExp]> = [
   ["/api/health", /json/],
   ["/api/v1/items", /json/],
@@ -31,7 +31,7 @@ PAGES.push(...LEADERBOARD);
 if (FEATURES.codexResetMonitor) PAGES.push("/codex-reset");
 
 let failed = 0;
-async function check(path: string, expect: (res: Response, body: string) => string | null) {
+async function check(path: string, expect: (res: Response, body: string) => string | null, status = 200) {
   try {
     const res = await fetch(base + path, { redirect: "manual", signal: AbortSignal.timeout(30_000) });
     const body = res.headers.get("content-type")?.startsWith("image/") ? "" : await res.text();
@@ -39,7 +39,7 @@ async function check(path: string, expect: (res: Response, body: string) => stri
       console.log(`– ${path}  no leaderboard round published yet`);
       return;
     }
-    const problem = res.status !== 200 ? `HTTP ${res.status}` : expect(res, body);
+    const problem = res.status !== status ? `HTTP ${res.status}` : expect(res, body);
     console.log(`${problem ? "✗" : "✓"} ${path}${problem ? `  ${problem}` : ""}`);
     if (problem) failed += 1;
   } catch (error) {
@@ -47,6 +47,8 @@ async function check(path: string, expect: (res: Response, body: string) => stri
     failed += 1;
   }
 }
+
+await check("/", (res) => res.headers.get("location") === "/all" ? null : "homepage does not redirect to /all", 302);
 
 // Pages write the name as HTML text: a name such as "MyF&B" appears as "MyF&amp;B".
 const htmlName = SITE.name.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#x27;");

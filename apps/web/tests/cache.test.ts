@@ -83,9 +83,19 @@ after(async () => {
   await new Promise<void>((resolve) => api.close(() => resolve()));
 });
 
+test("homepage redirects to all articles and preserves filters and search", async () => {
+  for (const query of ["", "?category=technology&q=game&tag=AI"]) {
+    const res = await fetch(`${origin}/${query}`, { redirect: "manual" });
+    assert.equal(res.status, 302);
+    assert.equal(res.headers.get("Location"), `/all${query}`);
+    assert.match(res.headers.get("Cache-Control") ?? "", /no-store/);
+    await res.text();
+  }
+});
+
 test("public route subsets produce the same complete navigation data; filters still differ", async () => {
   const answers = await Promise.all(["", "?_routes=root", "?_routes=routes%2Fhome", "?_routes=unknown"].map(async (query) => {
-    const res = await fetch(`${origin}/_.data${query}`);
+    const res = await fetch(`${origin}/selected.data${query}`);
     assert.equal(res.status, 200);
     assert.match(res.headers.get("Cache-Control")!, /^public,/);
     assert.equal(res.headers.get("X-Accel-Expires"), `@${deadline}`);
@@ -96,14 +106,14 @@ test("public route subsets produce the same complete navigation data; filters st
   }));
   assert.ok(answers.every((body) => body === answers[0]));
   const category = CATEGORY_KEYS.at(-1)!;
-  const filtered = await fetch(`${origin}/_.data?category=${category}&_routes=root`);
+  const filtered = await fetch(`${origin}/selected.data?category=${category}&_routes=root`);
   const body = await filtered.text();
   assert.ok(body.includes(category));
   assert.notEqual(body, answers[0]);
 });
 
 test("HTML and navigation share freshness; cookies do not personalize public results", async () => {
-  const html = await fetch(`${origin}/`);
+  const html = await fetch(`${origin}/selected`);
   assert.equal(html.status, 200);
   assert.equal(html.headers.get("X-Accel-Expires"), `@${deadline}`);
   assert.match(await html.text(), /精选/);
@@ -151,7 +161,7 @@ test("an elapsed release deadline cannot be extended by a fresh page/data respon
   const saved = refreshAt;
   refreshAt = new Date(Date.now() - 1000).toISOString();
   try {
-    for (const pathname of ["/", "/_.data?_routes=routes%2Fhome"]) {
+    for (const pathname of ["/selected", "/selected.data?_routes=routes%2Fhome"]) {
       const res = await fetch(origin + pathname);
       assert.equal(res.status, 200);
       assert.equal(res.headers.get("Cache-Control"), "no-cache");
@@ -174,7 +184,7 @@ test("browser freshness shares the selected deadline, including slow sibling loa
   try {
     deadline = Math.floor(Date.now() / 1000) + 20;
     refreshAt = new Date((deadline + 5) * 1000).toISOString();
-    for (const pathname of ["/", "/_.data?_routes=routes%2Fhome"]) {
+    for (const pathname of ["/selected", "/selected.data?_routes=routes%2Fhome"]) {
       const res = await fetch(origin + pathname);
       const cc = res.headers.get("Cache-Control")!;
       const browser = Number(cc.match(/(?:^|,)\s*max-age=(\d+)/)![1]);
@@ -190,7 +200,7 @@ test("browser freshness shares the selected deadline, including slow sibling loa
     deadline = Math.floor(Date.now() / 1000) + 2;
     refreshAt = new Date((deadline + 5) * 1000).toISOString();
     metaDelayMs = 2300;
-    await Promise.all(["/", "/_.data?_routes=routes%2Fhome"].map(async (pathname) => {
+    await Promise.all(["/selected", "/selected.data?_routes=routes%2Fhome"].map(async (pathname) => {
       const res = await fetch(origin + pathname);
       assert.equal(res.status, 200);
       assert.equal(res.headers.get("Cache-Control"), "no-cache");

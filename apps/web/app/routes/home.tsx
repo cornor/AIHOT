@@ -28,8 +28,8 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export function meta({ loaderData }: Route.MetaArgs) {
   const f = loaderData?.filters;
-  const path = listPath("/", { channel: f && f.channel !== "all" ? f.channel : null, category: f?.category, tag: f?.tag });
-  return pageMeta({ path, jsonLd: path === "/" ? organizationLd() : undefined });
+  const path = listPath("/selected", { channel: f && f.channel !== "all" ? f.channel : null, category: f?.category, tag: f?.tag });
+  return pageMeta({ path, jsonLd: path === "/selected" ? organizationLd() : undefined });
 }
 
 export function headers({ loaderHeaders }: Route.HeadersArgs) {
@@ -59,7 +59,7 @@ export default function Home() {
       <div className="hidden lg:block">
         <h1 className="text-[24px] font-semibold leading-[1.3] text-ink">{title}</h1>
         <div className="mb-5 mt-4 flex items-center justify-between gap-4">
-          <CategoryTabs base="/" category={filters.category} channel={filters.channel} layoutId="home-cat-desk" className="min-w-0" />
+          <CategoryTabs base="/selected" category={filters.category} channel={filters.channel} layoutId="home-cat-desk" className="min-w-0" />
           <SearchField variant="track" keep={{ category: filters.category }} />
         </div>
       </div>
@@ -68,7 +68,7 @@ export default function Home() {
 
       <h2 className="mt-6 text-[20px] font-bold text-ink lg:hidden">{filters.tag ? title : "最新精选"}</h2>
       <div className="-mx-4 mt-3 flex items-center gap-2 pl-4 pr-2 lg:hidden">
-        <CategoryTabs base="/" category={filters.category} channel={filters.channel} layoutId="home-cat-mobile" size="sm" className="min-w-0 flex-1" />
+        <CategoryTabs base="/selected" category={filters.category} channel={filters.channel} layoutId="home-cat-mobile" size="sm" className="min-w-0 flex-1" />
         <SearchIconLink />
       </div>
 

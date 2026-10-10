@@ -117,7 +117,7 @@ export function ErrorBoundary() {
         </p>
         <div className="mt-6 flex justify-center gap-2.5">
           <Link to="/" className={buttonClass("primary")}>
-            回到精选
+            回到首页
           </Link>
           <Link to="/all" className={buttonClass("secondary")}>
             浏览全部动态
