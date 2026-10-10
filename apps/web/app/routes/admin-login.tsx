@@ -1,5 +1,4 @@
-// Admin sign-in: the admin password (ADMIN_PASSWORD), and Feishu when it is configured. The form posts
-// straight to the API, which sets the session cookie and sends the browser on.
+// Company sign-in is the only entry offered on the site's login page.
 import { useLoaderData } from "react-router";
 import type { Route } from "./+types/admin-login";
 import { SITE } from "@aihot/industry/site";
@@ -7,17 +6,11 @@ import { apiGet } from "../lib/api.server";
 import { Wordmark } from "../components/Logo";
 import { buttonClass } from "../components/ui/Controls";
 
-const ERRORS: Record<string, string> = {
-  wrong: "密码不对，再试一次。",
-  unset: "还没有设置管理员密码：在 .env 里设置 ADMIN_PASSWORD（至少 12 位），重启后再登录。",
-  "too-many": "尝试次数太多，请 15 分钟后再试。",
-};
-
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const returnTo = url.searchParams.get("return") ?? "/";
-  const options = await apiGet<{ password: boolean; feishu: boolean; sso: boolean }>("/api/auth/options", { signal: request.signal }).catch(() => ({ password: true, feishu: false, sso: false }));
-  return { returnTo: returnTo.startsWith("/") && !returnTo.startsWith("//") && !/[\\\x00-\x20]/.test(returnTo) ? returnTo : "/", error: url.searchParams.get("error"), ...options };
+  const options = await apiGet<{ sso: boolean }>("/api/auth/options", { signal: request.signal }).catch(() => ({ sso: false }));
+  return { returnTo: returnTo.startsWith("/") && !returnTo.startsWith("//") && !/[\\\x00-\x20]/.test(returnTo) ? returnTo : "/", sso: options.sso };
 }
 
 export const meta: Route.MetaFunction = () => [{ title: `登录 · ${SITE.name}` }, { name: "robots", content: "noindex, nofollow" }];
@@ -25,8 +18,7 @@ export const meta: Route.MetaFunction = () => [{ title: `登录 · ${SITE.name}`
 export const headers: Route.HeadersFunction = () => ({ "Cache-Control": "no-store", "X-Robots-Tag": "noindex, nofollow" });
 
 export default function AdminLogin() {
-  const { returnTo, error, password, feishu, sso } = useLoaderData<typeof loader>();
-  const message = error ? (ERRORS[error] ?? ERRORS.wrong) : !password && !sso ? ERRORS.unset : null;
+  const { returnTo, sso } = useLoaderData<typeof loader>();
   return (
     <div className="flex min-h-dvh items-center justify-center bg-bg px-4">
       <div className="w-full max-w-[360px]">
@@ -38,37 +30,7 @@ export default function AdminLogin() {
           <p className="mb-4 text-sm text-ink-3">使用公司账号访问游戏行业资讯。</p>
           <a href={`/api/auth/sso/start?${new URLSearchParams({ return: returnTo })}`} className={`${buttonClass("primary", "lg")} w-full`}>公司账号登录</a>
         </div>}
-        {password && <details open={!sso || !!error} className="mt-5">
-          <summary className="cursor-pointer text-center text-sm text-ink-3">管理员备用登录</summary>
-        <form method="post" action="/api/auth/password" className="card mt-8 p-6">
-          <input type="hidden" name="return" value={returnTo} />
-          <label htmlFor="password" className="block text-[13px] font-medium text-ink-2">
-            管理员密码
-          </label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            autoComplete="current-password"
-            required
-            autoFocus={!sso}
-            className="mt-2 h-10 w-full rounded-full border border-line-strong bg-surface px-4 text-[14px] text-ink outline-none transition-colors focus:border-accent"
-          />
-          {message && (
-            <p role="alert" className="mt-3 text-[12.5px] leading-relaxed text-hot">
-              {message}
-            </p>
-          )}
-          <button type="submit" className={`${buttonClass("primary", "lg")} mt-5 w-full`}>
-            登录
-          </button>
-          {feishu && (
-            <a href={`/api/auth/feishu?${new URLSearchParams({ return: returnTo })}`} className={`${buttonClass("secondary", "lg")} mt-3 w-full`}>
-              用飞书登录
-            </a>
-          )}
-        </form>
-        </details>}
+        {!sso && <p role="alert" className="mt-8 text-center text-sm text-ink-3">公司账号登录暂不可用，请稍后重试。</p>}
         <p className="mt-6 text-center text-[12px] text-ink-4">
           <a href="/" className="hover:text-ink-2">
             回到 {SITE.name}
