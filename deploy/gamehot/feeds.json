@@ -75,5 +75,89 @@
     "name": "游戏那点事Gamez",
     "tier": "T2",
     "firstParty": false
+  },
+  {
+    "sourceId": "werss-gamelook",
+    "feedId": "MP_WXS_2397402280",
+    "name": "GameLook",
+    "tier": "T2",
+    "firstParty": false
+  },
+  {
+    "sourceId": "werss-chuapp",
+    "feedId": "MP_WXS_3080217924",
+    "name": "触乐",
+    "tier": "T2",
+    "firstParty": false
+  },
+  {
+    "sourceId": "werss-qimai",
+    "feedId": "MP_WXS_3243145072",
+    "name": "七麦研究院",
+    "tier": "T2",
+    "firstParty": false
+  },
+  {
+    "sourceId": "werss-socialpeta",
+    "feedId": "MP_WXS_3874541048",
+    "name": "广大大出海笔记",
+    "tier": "T2",
+    "firstParty": false
+  },
+  {
+    "sourceId": "werss-dataeye",
+    "feedId": "MP_WXS_3083148204",
+    "name": "DataEye游戏观察",
+    "tier": "T2",
+    "firstParty": false
+  },
+  {
+    "sourceId": "werss-youxixinzhi",
+    "feedId": "MP_WXS_3873336379",
+    "name": "游戏新知",
+    "tier": "T2",
+    "firstParty": false
+  },
+  {
+    "sourceId": "werss-gamekezhan",
+    "feedId": "MP_WXS_3279019840",
+    "name": "游戏客栈x爆款时代",
+    "tier": "T2",
+    "firstParty": false
+  },
+  {
+    "sourceId": "werss-upan",
+    "feedId": "MP_WXS_3930387284",
+    "name": "急速行走的小U盘",
+    "tier": "T2",
+    "firstParty": false
+  },
+  {
+    "sourceId": "werss-youxichuangtou",
+    "feedId": "MP_WXS_3090825526",
+    "name": "游戏创投",
+    "tier": "T2",
+    "firstParty": false
+  },
+  {
+    "sourceId": "werss-diandian",
+    "feedId": "MP_WXS_3903270666",
+    "name": "点点出海",
+    "tier": "T2",
+    "firstParty": false
+  },
+  {
+    "sourceId": "werss-gamesushi",
+    "feedId": "MP_WXS_3074317527",
+    "name": "游戏寿司",
+    "tier": "T2",
+    "firstParty": false
+  },
+  {
+    "sourceId": "werss-taptap",
+    "feedId": "MP_WXS_3015961831",
+    "name": "TapTap发现好游戏",
+    "tier": "T2",
+    "firstParty": false
   }
 ]
