@@ -122,6 +122,7 @@ export interface TimelineResponse {
 
 export interface PoolResponse {
   filters: TimelineFilters & { q: string | null; tab: "time" | "relevance" };
+  /** In the pool, timelineAt is the source publication time, falling back to discovery when absent. */
   items: FeedItemSummary[];
   page: number;
   pageCount: number;
