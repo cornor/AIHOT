@@ -360,6 +360,10 @@ export default function ItemPage() {
             <span> · {hostOf(item.links.original)}</span>
           </p>
 
+          <a href={item.links.original} target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex items-center gap-1.5 text-[14px] font-medium text-accent hover:underline">
+            阅读原文 <IconExternal size={15} />
+          </a>
+
           {item.tags.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-1.5 lg:hidden">
               {item.tags.slice(0, 6).map((t) => (

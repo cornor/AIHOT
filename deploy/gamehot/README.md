@@ -12,7 +12,11 @@ bash deploy/gamehot/backup.sh
 
 私有配置为 `.env`、`private/werss.env`，数据保存在 `private/`。两者不进入 Git 和镜像构建上下文。模型密钥仅供后端使用。
 
-WeRSS 入口：`https://gamehot.paoyou.com/werss/`。先登录站点管理员，再登录 WeRSS，进入微信读书页面扫码。采集器通过内部回环地址访问 RSS，每轮之后等待 4 小时；启动时立即执行一轮。
+WeRSS 入口：`https://gamehot.paoyou.com/werss/`。先登录站点管理员，再登录 WeRSS，进入微信读书页面扫码。采集器通过内部回环地址访问 RSS，每轮之后等待 4 小时；首次启动没有计划记录时立即执行一轮，后续重启沿用持久化的计划。
+
+扫码成功且凭据通过验证、保存后，WeRSS 在 `private/collector-events/weread.json` 写入不含凭据的事件编号；collector 只读该目录，每 5 秒检查本地事件。如果采集已到期，约 5 秒内补采一轮；尚未到期则保留原计划。同一次扫码不会重复触发，采集串行执行。授权失效或任务中断不会推迟原来的到期时间，常规失败重试仍间隔 4 小时；新的扫码事件可以提前唤醒已经到期的重试。此机制不做定时联网授权探测，也不会自动打开已关闭的采集开关。手动填写 Cookie 不属于扫码事件。
+
+计划保存在 `private/app-data/collector-schedule.json`，包含到期、重试时间及已消费的事件编号；通知投递失败仍约 15 分钟重试。部署时先创建 `private/collector-events`（目录 755），WeRSS 可写、collector 只读；事件文件只有随机编号，权限 644。扫码保存事件失败会在 WeRSS 日志中提示，原有定时采集不受影响。
 
 临时最新单篇模式：服务器 `.env` 设置 `WERSS_LATEST_ONLY=true`，重建 WeRSS 和 collector 容器使其同时生效；`COLLECT_ENABLED=true` 启用采集。每个公众号每轮只读取最新一篇，重复文章跳过，不保证补齐两轮之间的其他文章。正文和真实发布时间来自微信读书返回的原文 HTML，缺失时报告失败，不使用采集时间代替发布时间。每轮飞书概况注明覆盖范围。默认 `WERSS_LATEST_ONLY=false` 使用文章列表；列表失败不会悄悄切换为单篇模式。
 

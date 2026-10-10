@@ -102,6 +102,7 @@ services:
       TZ: Asia/Shanghai
       ENABLE_JOB: "False"
       WERSS_LATEST_ONLY: ${WERSS_LATEST_ONLY:-false}
+      GAMEHOT_AUTH_EVENT_FILE: /collector-events/weread.json
       WERSS_AUTH_WEB: "True"
       MAX_PAGE: "1"
       SPAN_INTERVAL: "20"
@@ -116,6 +117,7 @@ services:
     ports: ["127.0.0.1:8001:8001"]
     volumes:
       - ../../private/werss-data:/app/data
+      - ../../private/collector-events:/collector-events
     shm_size: 512mb
     healthcheck:
       test: [CMD, python3, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/',timeout=5).close()"]
@@ -130,9 +132,13 @@ services:
       - ../../private/werss.env
     command: [python3, deploy/gamehot/collector.py, --watch]
     network_mode: service:werss
+    volumes:
+      - ../../private/app-data:/data
+      - ../../private/collector-events:/collector-events:ro
     environment:
       <<: *app-env
       WERSS_FEEDS_FILE: /app/deploy/gamehot/feeds.json
+      WERSS_AUTH_EVENT_FILE: /collector-events/weread.json
       WERSS_LATEST_ONLY: ${WERSS_LATEST_ONLY:-false}
       PYTHONUNBUFFERED: "1"
       COLLECT_ENABLED: ${COLLECT_ENABLED:-false}

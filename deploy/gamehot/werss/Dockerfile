@@ -13,3 +13,6 @@ COPY --from=frontend /ui/dist/ /app/static/
 COPY werss/weread_mp.py /app/core/wx/model/weread_mp.py
 COPY werss/patch-backend.py /tmp/patch-backend.py
 RUN python3 /tmp/patch-backend.py && rm /tmp/patch-backend.py
+COPY werss/auth_event.py /app/core/gamehot_auth_event.py
+COPY werss/patch-auth-event.py /tmp/patch-auth-event.py
+RUN python3 /tmp/patch-auth-event.py && rm /tmp/patch-auth-event.py

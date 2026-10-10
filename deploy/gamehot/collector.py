@@ -15,6 +15,7 @@ from notifications import Notices, auth_status
 
 ROOT = Path(__file__).resolve().parents[2]
 BASE = "http://127.0.0.1:8001/api/v1/wx"
+INTERVAL = 4 * 60 * 60
 stop = threading.Event()
 for sig in (signal.SIGINT, signal.SIGTERM):
     signal.signal(sig, lambda *_: stop.set())
@@ -119,7 +120,60 @@ def cycle(notices):
         lines.append('站点：https://gamehot.paoyou.com')
         notices.enqueue('采集结束（有异常）' if failures or incomplete else '采集完成', lines)
         if failures and os.environ.get('FEISHU_COLLECTOR_ENABLED') == 'true':
-            check_authorization(notices)
+            if check_authorization(notices) in ('expired', 'missing'):
+                return False
+        return True
+
+
+class Schedule:
+    """Keep an overdue cycle due while waiting for a new, locally saved QR authorization."""
+    def __init__(self, path=None):
+        self.path = Path(path or Path(os.environ.get('AIHOT_DATA_DIR', '.data')) / 'collector-schedule.json')
+        self.state = json.loads(self.path.read_text()) if self.path.exists() else {'due_at': 0, 'retry_at': 0, 'auth_event': None}
+
+    def save(self):
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        temp = self.path.with_suffix('.tmp')
+        temp.write_text(json.dumps(self.state))
+        temp.chmod(0o600)
+        temp.replace(self.path)
+
+    def run_due(self, notices):
+        if os.environ.get('COLLECT_ENABLED') != 'true':
+            return False
+        # This file contains only an event ID, never credentials. No network polling.
+        event = self.state['auth_event']
+        event_path = os.environ.get('WERSS_AUTH_EVENT_FILE')
+        if event_path:
+            try:
+                value = json.loads(Path(event_path).read_text()).get('id')
+                if isinstance(value, str) and value:
+                    event = value
+            except (OSError, ValueError, AttributeError):
+                pass
+        changed = event != self.state['auth_event']
+        if changed:
+            self.state['auth_event'] = event
+            self.save()
+        now = time.time()
+        if now < self.state['due_at'] or (now < self.state['retry_at'] and not changed):
+            return False
+        # Persist before the attempt so a restart cannot replay the same scan event.
+        self.state['retry_at'] = now + INTERVAL
+        self.save()
+        try:
+            completed = cycle(notices)
+        except Exception as exc:
+            completed = False
+            print('Collection failed: ' + type(exc).__name__, flush=True)
+            if not stop.is_set():
+                notices.enqueue('采集未完成', ['本轮任务异常中断，请检查采集器和 WeRSS 服务。',
+                    '错误类型：' + type(exc).__name__, '下一轮约 4 小时后重试；到期后重新扫码可触发补采。'])
+        if completed:
+            self.state['due_at'] = time.time() + INTERVAL
+        self.state['retry_at'] = 0 if stop.is_set() else time.time() + INTERVAL
+        self.save()
+        return True
 
 
 if __name__ == "__main__":
@@ -132,18 +186,13 @@ if __name__ == "__main__":
             '这是接通测试，不代表本轮采集已完成，也不是授权过期告警。'])
         notices.flush()
         raise SystemExit(1 if notices.state['pending'] else 0)
-    next_cycle = 0
+    schedule = Schedule()
+    next_flush = 0
     while not stop.is_set():
-        if time.monotonic() >= next_cycle:
-            try:
-                cycle(notices)
-            except Exception as exc:
-                print('Collection failed: ' + type(exc).__name__, flush=True)
-                if not stop.is_set():
-                    notices.enqueue('采集未完成', ['本轮任务异常中断，请检查采集器和 WeRSS 服务。',
-                        '错误类型：' + type(exc).__name__, '下一轮约 4 小时后重试。'])
-            next_cycle = time.monotonic() + 4 * 60 * 60
-        notices.flush()
+        attempted = schedule.run_due(notices)
+        if attempted or time.monotonic() >= next_flush:
+            notices.flush()
+            next_flush = time.monotonic() + 15 * 60
         if '--watch' not in sys.argv:
             break
-        stop.wait(min(15 * 60, max(1, next_cycle - time.monotonic())))
+        stop.wait(5)
