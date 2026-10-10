@@ -139,7 +139,7 @@ test("admin data and actions never become public cache entries", async () => {
   assert.equal(admin.status, 202);
   assert.equal(admin.headers.get("Cache-Control"), "private, no-store");
   assert.equal(admin.headers.get("X-Accel-Expires"), "0");
-  assert.match(await admin.text(), /admin\/login/);
+  assert.match(await admin.text(), /\/login\?return=/);
   const action = await fetch(`${origin}/hot.data`, { method: "POST" });
   assert.equal(action.status, 405);
   assert.equal(action.headers.get("Cache-Control"), "private, no-store");
@@ -216,11 +216,23 @@ test("browser caching preserves noindex and private sign-in responses", async ()
   assert.equal(feedback.status, 200);
   assert.match(await feedback.text(), /name="robots" content="noindex/);
   assert.equal(feedback.headers.get("Cache-Control"), "public, max-age=300, s-maxage=300, must-revalidate");
-  const login = await fetch(origin + "/admin/login");
+  const login = await fetch(origin + "/login");
   assert.equal(login.status, 200);
   assert.equal(login.headers.get("Cache-Control"), "private, no-store");
   assert.equal(login.headers.get("X-Robots-Tag"), "noindex, nofollow");
   await login.text();
+});
+
+test("old administrator login links redirect to the shared login and preserve the return path", async () => {
+  const old = await fetch(origin + "/admin/login?return=%2Fwerss%2F", { redirect: "manual" });
+  assert.equal(old.status, 302);
+  assert.equal(old.headers.get("Location"), "/login?return=%2Fwerss%2F");
+  assert.match(old.headers.get("Cache-Control") ?? "", /no-store/);
+  await old.text();
+  const current = await fetch(origin + old.headers.get("Location"));
+  assert.equal(current.status, 200);
+  assert.equal(new URL(current.url).pathname, "/login");
+  await current.text();
 });
 
 test("a visitor cannot name its own address to the api without a trusted proxy in front", async () => {

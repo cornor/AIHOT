@@ -29,7 +29,7 @@ export function registerSsoAuth(app: FastifyInstance) {
   // A standalone callback avoids analytics, shared page loaders, and third-party resources.
   app.get("/sso/callback", async (_req, reply) => reply.headers(headers)
     .header("Content-Security-Policy", "default-src 'none'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'")
-    .type("text/html; charset=utf-8").send('<!doctype html><html lang="zh"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>公司账号登录</title><p id="status">正在验证登录…</p><a href="/admin/login">返回登录</a><script src="/api/auth/sso/callback.js"></script></html>'));
+    .type("text/html; charset=utf-8").send('<!doctype html><html lang="zh"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>公司账号登录</title><p id="status">正在验证登录…</p><a href="/login">返回登录</a><script src="/api/auth/sso/callback.js"></script></html>'));
   app.get("/api/auth/sso/callback.js", async (_req, reply) => reply.headers(headers).type("text/javascript; charset=utf-8").send(`
 (async () => {
   const params = new URLSearchParams(location.search);

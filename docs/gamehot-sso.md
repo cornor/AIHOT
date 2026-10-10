@@ -1,6 +1,6 @@
 # 游戏研发情报：公司 SSO 与 HTTPS
 
-访问地址为 https://gamehot.paoyou.com ，公司登录按钮位于 `/admin/login`。原管理员密码作为备用入口保留。WeRSS 入口为 `/werss/`，要求本站管理员权限，进入后仍需 WeRSS 自身登录及微信读书授权。
+访问地址为 https://gamehot.paoyou.com ，公司统一登录入口为 `/login`；旧地址 `/admin/login` 自动跳转并保留返回路径。WeRSS 入口为 `/werss/`，要求本站管理员权限，进入后仍需 WeRSS 自身登录及微信读书授权。
 
 ## 登录与权限
 

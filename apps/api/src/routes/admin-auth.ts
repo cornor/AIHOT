@@ -43,7 +43,7 @@ function tooManyAttempts(ip: string): boolean {
   return over("all", 50, now) || perClient;
 }
 
-const loginPage = (returnTo: string, error?: string) => `/admin/login?${new URLSearchParams({ return: safeReturn(returnTo), ...(error ? { error } : {}) })}`;
+const loginPage = (returnTo: string, error?: string) => `/login?${new URLSearchParams({ return: safeReturn(returnTo), ...(error ? { error } : {}) })}`;
 
 export type AdminHandler = (req: FastifyRequest, reply: FastifyReply, admin: AdminPrincipal) => Promise<unknown>;
 
@@ -125,7 +125,7 @@ export function registerAdminAuth(app: FastifyInstance) {
     } catch (error) {
       const message = error instanceof LoginRejected ? error.message : "登录失败，请稍后再试";
       if (!(error instanceof LoginRejected)) req.log.error({ err: error }, "admin login failed");
-      return reply.code(403).type("text/html; charset=utf-8").send(`<!doctype html><meta charset="utf-8"><title>登录失败</title><p style="font:16px system-ui;padding:40px">${message}。<a href="/admin/login">重新登录</a></p>`);
+      return reply.code(403).type("text/html; charset=utf-8").send(`<!doctype html><meta charset="utf-8"><title>登录失败</title><p style="font:16px system-ui;padding:40px">${message}。<a href="/login">重新登录</a></p>`);
     }
   });
 

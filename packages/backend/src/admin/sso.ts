@@ -19,7 +19,7 @@ export function safeSiteReturn(input: string): string {
     if (!decoded.startsWith("/") || decoded.startsWith("//") || /[\\\x00-\x20\x7f]/.test(decoded)) return "/";
     const url = new URL(input, "https://local.invalid");
     const path = decodeURIComponent(url.pathname);
-    if (url.origin !== "https://local.invalid" || path.startsWith("//") || /^\/(api\/auth|sso|admin\/login)(\/|$)/.test(path)) return "/";
+    if (url.origin !== "https://local.invalid" || path.startsWith("//") || /^\/(api\/auth|sso|(?:admin\/)?login(?:\.data)?)(\/|$)/.test(path)) return "/";
     return url.pathname + url.search;
   } catch { return "/"; }
 }

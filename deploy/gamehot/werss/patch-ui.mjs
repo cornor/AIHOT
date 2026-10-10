@@ -24,7 +24,7 @@ function walk(dir) {
 }
 walk(join(root, 'src'));
 replace('index.html', 'href="/static/logo.svg"', 'href="/werss/static/logo.svg"');
-replace('src/api/http.ts', "router.push(\"/login\")\n    }", "if (error.response?.headers?.['x-gamehot-auth'] === 'required') window.location.assign('/admin/login?return=%2Fwerss%2F');\n      else router.push(\"/login\")\n    }");
+replace('src/api/http.ts', "router.push(\"/login\")\n    }", "if (error.response?.headers?.['x-gamehot-auth'] === 'required') window.location.assign('/login?return=%2Fwerss%2F');\n      else router.push(\"/login\")\n    }");
 // Backend JSON carries QR, avatar and export URLs. Prefix only known local resource URLs.
 replace('src/api/http.ts', '// 处理标准响应格式', `const prefixUrls = (value: any): any => {
       if (typeof value === 'string' && /^\\/(static|files|api|views|feed|proxy|rss)(\\/|$)/.test(value)) return '/werss' + value;

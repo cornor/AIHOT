@@ -38,6 +38,7 @@ export default [
   route("leaderboard/sources/:key", "routes/leaderboard-source.tsx"),
   route("leaderboard/rules", "routes/leaderboard-rules.tsx"),
   route("leaderboard/:slug", "routes/leaderboard-model.tsx"),
+  route("login", "routes/login.tsx"),
   route("admin/login", "routes/admin-login.tsx"),
   layout("routes/admin/layout.tsx", { id: "admin-layout" }, [
     route("admin", "routes/admin/index.tsx"),

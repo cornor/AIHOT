@@ -65,9 +65,18 @@ after(async () => {
 });
 
 test("return URLs stay on this site and never restart authentication", () => {
-  for (const url of ["//evil.test", "https://evil.test", "/\\evil", "/%2fexample.test", "/%5cevil", "/a/../../..//evil", "/api/auth/logout", "/sso/callback?token=x", "/admin/login", "/a%0ab", "%bad"]) assert.equal(safeSiteReturn(url), "/", url);
+  for (const url of ["//evil.test", "https://evil.test", "/\\evil", "/%2fexample.test", "/%5cevil", "/a/../../..//evil", "/api/auth/logout", "/sso/callback?token=x", "/admin/login", "/login", "/login?return=/all", "/login.data", "/admin/login.data", "/a%0ab", "%bad"]) assert.equal(safeSiteReturn(url), "/", url);
   assert.equal(safeSiteReturn("/all?q=game#top"), "/all?q=game");
   assert.equal(isApiOwned("/sso/callback"), true);
+});
+
+test("login redirects and callback recovery use the shared login path", async () => {
+  const res = await app.inject({ method: "GET", url: "/api/auth/login?return=%2Fwerss%2F" });
+  assert.equal(res.statusCode, 302);
+  assert.equal(res.headers.location, "/login?return=%2Fwerss%2F");
+  const callback = await app.inject({ method: "GET", url: "/sso/callback" });
+  assert.match(callback.body, /href="\/login"/);
+  assert.ok(!callback.body.includes('/admin/login'));
 });
 
 test("unknown employees are recorded pending, without any site/admin session", async () => {
