@@ -69,6 +69,8 @@ export function meta({ error }: Route.MetaArgs) {
 /** Sidebar, main column and phone tab bar around a page (or an error). */
 function SiteShell({ changelogVersion, children }: { changelogVersion: string | null; children: ReactNode }) {
   const navigation = useNavigation();
+  const { pathname } = useLocation();
+  const feed = pathname === "/all" || pathname === "/selected";
   return (
     <div className="flex min-h-dvh">
       <NavigationProgress active={navigation.state === "loading"} />
@@ -77,9 +79,9 @@ function SiteShell({ changelogVersion, children }: { changelogVersion: string | 
       </a>
       <Sidebar changelogVersion={changelogVersion} />
       {/* Mobile shell (≤ 960px): one centred column, the tab bar below. Desktop: the page fills the main area
-          up to the list width (--page-max-wide), centred beyond it. */}
+          up to the list width (--page-max-wide); feeds stay beside the sidebar. */}
       <main id="main" className="min-w-0 flex-1 pb-[calc(72px+env(safe-area-inset-bottom))] lg:px-7 lg:pb-[72px] lg:pt-6">
-        <div className="mx-auto w-full max-w-[640px] px-4 lg:max-w-[var(--page-max-wide)] lg:px-0">{children}</div>
+        <div className={`mx-auto w-full max-w-[640px] px-4 lg:max-w-[var(--page-max-wide)] lg:px-0 ${feed ? "lg:mx-0" : ""}`}>{children}</div>
       </main>
       <MobileTabBar changelogVersion={changelogVersion} />
       <BackToTop />

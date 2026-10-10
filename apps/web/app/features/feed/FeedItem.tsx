@@ -29,10 +29,10 @@ export const FeedItem = memo(function FeedItem({ item, group, filters, read = fa
   const tags = showTags ? [...new Set(item.tags)].filter(t => t !== (item.category ? CATEGORY_LABELS[item.category] : null)).slice(0, 3) : [];
 
   return (
-    <article className="relative min-w-0 lg:card lg:card-hover lg:px-6 lg:py-5" data-item-id={item.id}>
+    <article className="relative min-w-0 lg:card lg:card-hover lg:px-5 lg:py-4" data-item-id={item.id}>
       <header className="flex min-h-[18px] items-center gap-2 text-[12.5px] leading-[18px] text-ink-4">
         <SourceLine item={item} className="text-ink-4" />
-        {read && <span className="text-[11px]">已读</span>}
+        {read && <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-bg-sunk px-2 py-0.5 text-[12px] font-medium text-ink-3"><span aria-hidden="true">✓</span>已读</span>}
         {item.selected && (
           <span className="hidden lg:inline-flex">
             <SelectedBadge />
@@ -59,32 +59,17 @@ export const FeedItem = memo(function FeedItem({ item, group, filters, read = fa
         </p>
       ) : (
         <>
-          <h3 className="mt-2.5 line-clamp-3 text-[19px] font-bold leading-[1.5] text-ink lg:text-[21px]">
+          <h3 className={`mt-2 line-clamp-3 text-[19px] leading-[1.5] lg:text-[21px] ${read ? "font-semibold text-ink-3" : "font-bold text-ink"}`}>
             <IntentLink to={`/items/${item.id}`} onClick={open} className="after:absolute after:inset-0 after:content-['']">
               {item.title}
             </IntentLink>
           </h3>
-          {item.summary && <p className="mt-3 line-clamp-3 text-[14px] leading-[1.85] text-ink-3">{item.summary}</p>}
+          {item.summary && <p className="mt-2 line-clamp-3 text-[14px] leading-[1.85] text-ink-3">{item.summary}</p>}
         </>
       )}
 
       {isX && item.x!.media.length > 0 && <MediaThumbs media={item.x!.media} className="mt-2.5" />}
       {isX && item.x!.quoted?.text && <QuotedLine quoted={item.x!.quoted} />}
-
-      {(tags.length > 0 || (showTags && item.category)) && (
-        <div className="relative z-10 mt-3 flex flex-wrap gap-x-2.5 gap-y-1 text-[12px] text-ink-4">
-          {showTags && item.category && (
-            <Link to={`/all?category=${item.category}`} className="hover:text-accent">
-              {CATEGORY_LABELS[item.category]}
-            </Link>
-          )}
-          {tags.map((t) => (
-            <Link key={t} to={`/all?tag=${encodeURIComponent(t)}`} className="hover:text-accent">
-              #{t}
-            </Link>
-          ))}
-        </div>
-      )}
 
       {group && <LatestDevelopment group={group} />}
       {(showSources || showDevelopments) && (
@@ -99,13 +84,29 @@ export const FeedItem = memo(function FeedItem({ item, group, filters, read = fa
           <p className="line-clamp-2 text-[13px] leading-[1.65] text-ink-3 lg:line-clamp-none lg:leading-[1.75] lg:text-note">参考价值：{item.reason}</p>
         </div>
       )}
-      {item.originalUrl && /^https?:\/\//i.test(item.originalUrl) && (
-        <div className="mt-3 flex justify-end">
-          <a href={item.originalUrl} target="_blank" rel="noopener noreferrer" onClick={open}
-            className="relative z-10 inline-flex min-h-9 items-center gap-1 rounded-control px-2 text-[13px] font-medium text-accent hover:bg-accent-soft hover:underline focus-visible:outline-2 focus-visible:outline-accent">
-            阅读原文 <span aria-hidden="true">↗</span>
-          </a>
-        </div>
+      {(tags.length > 0 || (showTags && item.category) || (item.originalUrl && /^https?:\/\//i.test(item.originalUrl))) && (
+        <footer className="mt-2 flex items-center gap-x-3">
+          {(tags.length > 0 || (showTags && item.category)) && (
+            <div className="relative z-10 flex min-w-0 flex-1 flex-wrap gap-x-2.5 gap-y-1 text-[12px] text-ink-4">
+              {showTags && item.category && (
+                <Link to={`/all?category=${item.category}`} className="hover:text-accent">
+                  {CATEGORY_LABELS[item.category]}
+                </Link>
+              )}
+              {tags.map((t) => (
+                <Link key={t} to={`/all?tag=${encodeURIComponent(t)}`} className="hover:text-accent">
+                  #{t}
+                </Link>
+              ))}
+            </div>
+          )}
+          {item.originalUrl && /^https?:\/\//i.test(item.originalUrl) && (
+            <a href={item.originalUrl} target="_blank" rel="noopener noreferrer" onClick={open}
+              className="relative z-10 ml-auto inline-flex min-h-9 shrink-0 items-center gap-1 rounded-control px-2 text-[13px] font-medium text-accent hover:bg-accent-soft hover:underline focus-visible:outline-2 focus-visible:outline-accent">
+              阅读原文 <span aria-hidden="true">↗</span>
+            </a>
+          )}
+        </footer>
       )}
     </article>
   );

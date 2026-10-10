@@ -74,7 +74,7 @@ export default function AllPage() {
   const collected = data.lastCollectedAt ? new Date(data.lastCollectedAt).toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Shanghai" }) : null;
 
   return (
-    <div className="mx-auto w-full max-w-[1080px] pb-6">
+    <div className="w-full max-w-[1080px] pb-6">
       {/* Desktop, as on 精选: the title, then one filter row with the search field aligned on the right. */}
       <div className="hidden lg:block">
         <h1 className="text-[24px] font-semibold leading-[1.3] text-ink">{title ?? `全部${withSubject("动态")}`}</h1>
