@@ -68,6 +68,15 @@ class Notices:
             self.state['pending'].pop(0)
             self.save()
 
+    def authorization_problem(self, now=None):
+        now = time.time() if now is None else now
+        if now - self.state.get('auth_problem_notice_at', 0) < 86400:
+            return
+        self.state['auth_problem_notice_at'] = now
+        self.enqueue('采集暂缓：授权验证或续期异常', [
+            '本次未能确认可用登录态，未继续抓取；不代表必须重新扫码。',
+            '可能是网络、接口或凭据保存异常，约 4 小时后重试；同类异常每天最多提醒一次。'])
+
     def authorization(self, status, collecting, now=None):
         now = time.time() if now is None else now
         previous = self.state.get('auth_status')
@@ -84,7 +93,7 @@ class Notices:
                 '同一问题每天最多提醒一次。'])
         elif status == 'valid' and previous in ('expired', 'missing'):
             self.enqueue('微信读书授权已恢复', [
-                '登录凭据已通过书架接口验证；文章列表是否可采集仍以采集结果为准。',
+                '登录凭据已通过验证；各公众号是否采集成功仍以本轮采集结果为准。',
                 '自动采集已启用。' if collecting else '自动采集开关仍关闭，尚未开始采集。'])
         self.save()
 

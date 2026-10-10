@@ -81,6 +81,51 @@ class NotificationsTest(unittest.TestCase):
         with patch.object(notifications, 'read_json', side_effect=error):
             self.assertEqual(notifications.auth_status({'cookie': 'test-only'}), 'expired')
 
+    def test_renewal_outcomes_notify_only_after_final_result(self):
+        with patch.dict(os.environ, {'FEISHU_COLLECTOR_ENABLED': 'true', 'COLLECT_ENABLED': 'true'}), \
+             patch.object(collector, 'request', return_value={'status': 'valid', 'attempted': True, 'renewed': True}) as req:
+            state = {}
+            self.assertEqual(collector.check_authorization(self.notices, 'test', 'MP_WXS_123', renewal_state=state), 'valid')
+            self.assertTrue(state['attempted'])
+            req.assert_called_once_with('/weread/ensure-auth', {'book_id': 'MP_WXS_123', 'allow_renew': True}, token='test', timeout=110)
+            self.assertEqual(self.notices.state['pending'], [])
+            req.return_value = {'status': 'expired', 'attempted': True, 'renewed': False}
+            collector.check_authorization(self.notices, 'test', 'MP_WXS_123')
+            self.assertEqual(len(self.notices.state['pending']), 1)
+            collector.check_authorization(self.notices, 'test', 'MP_WXS_123')
+            self.assertEqual(len(self.notices.state['pending']), 1)
+
+    def test_unknown_notice_is_daily_across_restart(self):
+        self.notices.authorization_problem(now=100000)
+        reloaded = notifications.Notices(self.path)
+        reloaded.authorization_problem(now=100001)
+        self.assertEqual(len(reloaded.state['pending']), 1)
+        self.assertNotIn('授权已过期', reloaded.state['pending'][0]['text'])
+        reloaded.authorization_problem(now=186400)
+        self.assertEqual(len(reloaded.state['pending']), 2)
+
+    def test_verification_runs_even_with_feishu_off(self):
+        path = Path(self.temp.name) / 'feeds.json'
+        path.write_text('[{"name":"测试","feedId":"MP_WXS_123"}]')
+        with patch.dict(os.environ, {'COLLECT_ENABLED': 'true', 'FEISHU_COLLECTOR_ENABLED': 'false', 'WERSS_FEEDS_FILE': str(path)}), \
+             patch.object(collector, 'login', return_value='test'), \
+             patch.object(collector, 'request', return_value={'status': 'unknown', 'attempted': True}) as req, \
+             patch.object(collector.subprocess, 'run') as imports:
+            self.assertFalse(collector.cycle(self.notices))
+            self.assertEqual(req.call_count, 1)
+            self.assertEqual(req.call_args.args[0], '/weread/ensure-auth')
+            imports.assert_not_called()
+        self.assertEqual(self.notices.state['pending'], [])
+
+    def test_mid_cycle_check_reuses_renewal_budget(self):
+        with patch.object(collector, 'check_authorization') as check:
+            def verified(*args, **kwargs):
+                kwargs['renewal_state']['attempted'] = True
+                return 'valid'
+            check.side_effect = verified
+            self.run_cycle(subprocess.CompletedProcess([], 1, '', ''), failed=True, monitor=True)
+            self.assertFalse(check.call_args.kwargs['allow_renew'])
+
     def test_werss_nested_error_preserves_code_without_credentials(self):
         error = urllib.error.HTTPError('http://127.0.0.1', 400, 'Bad request', {},
             io.BytesIO(b'{"detail":{"code":400,"message":"secret","data":{"code":-2041}}}'))
@@ -102,9 +147,16 @@ class NotificationsTest(unittest.TestCase):
         path = Path(self.temp.name) / 'feeds.json'
         path.write_text(json.dumps(feeds))
         responses = [{'collected': 2}, collector.WeRSSError({'data': {'code': -2041}}) if failed else {'collected': 0}]
+        def respond(route, *args, **kwargs):
+            if route == '/weread/ensure-auth':
+                return {'status': 'valid', 'attempted': False}
+            result = responses.pop(0)
+            if isinstance(result, Exception):
+                raise result
+            return result
         with patch.dict(os.environ, {'COLLECT_ENABLED': 'true', 'WERSS_FEEDS_FILE': str(path),
                                     'FEISHU_COLLECTOR_ENABLED': 'true' if monitor else 'false'}), \
-             patch.object(collector, 'login', return_value='test'), patch.object(collector, 'request', side_effect=responses), \
+             patch.object(collector, 'login', return_value='test'), patch.object(collector, 'request', side_effect=respond), \
              patch.object(collector.subprocess, 'run', return_value=import_result):
             collector.cycle(self.notices)
         return self.notices.state['pending'][0]['text']

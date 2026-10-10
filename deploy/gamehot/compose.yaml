@@ -103,6 +103,7 @@ services:
       ENABLE_JOB: "False"
       WERSS_LATEST_ONLY: ${WERSS_LATEST_ONLY:-false}
       GAMEHOT_AUTH_EVENT_FILE: /collector-events/weread.json
+      GAMEHOT_WEREAD_RENEW_ENABLED: ${COLLECT_ENABLED:-false}
       WERSS_AUTH_WEB: "True"
       MAX_PAGE: "1"
       SPAN_INTERVAL: "20"

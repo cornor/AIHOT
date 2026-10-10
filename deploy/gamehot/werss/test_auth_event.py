@@ -38,7 +38,7 @@ class AuthEventTest(unittest.TestCase):
         event = Mock(side_effect=lambda: calls.append('event'))
         config_module = types.ModuleType('core.config'); config_module.Config = Mock(return_value=config)
         event_module = types.ModuleType('core.gamehot_auth_event'); event_module.authorization_saved = event
-        namespace = {'Dict': dict, 'Any': object, 'os': os, 'json': json,
+        namespace = {'auth_locked': lambda fn: fn, 'Dict': dict, 'Any': object, 'os': os, 'json': json,
                      'print_error': Mock(), 'print_success': Mock(), 'print_warning': Mock()}
         exec(compile(ast.Module(body=[method], type_ignores=[]), '<qr-save>', 'exec'), namespace)
         obj = Mock()

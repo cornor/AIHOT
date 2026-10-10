@@ -16,3 +16,6 @@ RUN python3 /tmp/patch-backend.py && rm /tmp/patch-backend.py
 COPY werss/auth_event.py /app/core/gamehot_auth_event.py
 COPY werss/patch-auth-event.py /tmp/patch-auth-event.py
 RUN python3 /tmp/patch-auth-event.py && rm /tmp/patch-auth-event.py
+COPY werss/weread_auth.py /app/core/gamehot_weread_auth.py
+COPY werss/patch-auth-renewal.py /tmp/patch-auth-renewal.py
+RUN python3 /tmp/patch-auth-renewal.py && rm /tmp/patch-auth-renewal.py

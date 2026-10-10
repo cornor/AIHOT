@@ -11,7 +11,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
-from notifications import Notices, auth_status
+from notifications import Notices
 
 ROOT = Path(__file__).resolve().parents[2]
 BASE = "http://127.0.0.1:8001/api/v1/wx"
@@ -53,14 +53,25 @@ def login():
     return request('/auth/login', {'username': os.environ['USERNAME'], 'password': os.environ['PASSWORD']}, form=True)['access_token']
 
 
-def check_authorization(notices, token=None):
+def check_authorization(notices, token=None, book_id=None, allow_renew=True, renewal_state=None):
     try:
-        status = auth_status(request('/weread', token=token or login()))
-        notices.authorization(status, os.environ.get('COLLECT_ENABLED') == 'true')
-        print('WeRead authorization check: ' + status, flush=True)
+        if book_id is None:
+            feeds = json.loads(Path(os.environ.get('WERSS_FEEDS_FILE', ROOT / 'deploy/gamehot/feeds.json')).read_text())
+            book_id = feeds[0]['feedId']
+        data = request('/weread/ensure-auth', {'book_id': book_id, 'allow_renew': allow_renew},
+                       token=token or login(), timeout=110)
+        if renewal_state is not None and data.get('attempted') is True:
+            renewal_state['attempted'] = True
+        status = data.get('status', 'unknown')
+        if status not in ('valid', 'expired', 'missing', 'unknown'):
+            status = 'unknown'
+        if os.environ.get('FEISHU_COLLECTOR_ENABLED') == 'true':
+            notices.authorization(status, os.environ.get('COLLECT_ENABLED') == 'true')
+        print('WeRead authorization check: ' + status + '; renewed=' + str(data.get('renewed') is True), flush=True)
         return status
     except Exception as exc:
         print('Authorization check failed: ' + type(exc).__name__, flush=True)
+        return 'unknown'
 
 
 def cycle(notices):
@@ -69,9 +80,16 @@ def cycle(notices):
         return
     feeds = json.loads(Path(os.environ.get("WERSS_FEEDS_FILE", ROOT / "deploy/gamehot/feeds.json")).read_text())
     token = login()
-    if os.environ.get('FEISHU_COLLECTOR_ENABLED') == 'true':
-        if check_authorization(notices, token) in ('expired', 'missing'):
-            return
+    if not feeds:
+        return True
+    renewal_state = {}
+    status = check_authorization(notices, token, feeds[0]['feedId'], renewal_state=renewal_state)
+    if status in ('expired', 'missing'):
+        return False
+    if status != 'valid':
+        if os.environ.get('FEISHU_COLLECTOR_ENABLED') == 'true':
+            notices.authorization_problem()
+        return False
     started = time.monotonic()
     gathered = 0
     succeeded = 0
@@ -120,7 +138,8 @@ def cycle(notices):
         lines.append('站点：https://gamehot.paoyou.com')
         notices.enqueue('采集结束（有异常）' if failures or incomplete else '采集完成', lines)
         if failures and os.environ.get('FEISHU_COLLECTOR_ENABLED') == 'true':
-            if check_authorization(notices) in ('expired', 'missing'):
+            if check_authorization(notices, token, feeds[0]['feedId'],
+                                   allow_renew=not renewal_state.get('attempted'), renewal_state=renewal_state) != 'valid':
                 return False
         return True
 
