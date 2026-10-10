@@ -8,9 +8,9 @@
  * 没归上类的资料在日报里放进第一个 key 为 industry 的类别所在的节（没有就放最后一节）。
  */
 export const CATEGORIES = [
-  { key: "game-tech", label: "研发技术", section: "研发技术", guide: "引擎、图形渲染、性能优化、服务器、工具链、美术管线和研发实践" },
-  { key: "game-products", label: "产品玩法", section: "产品玩法", guide: "游戏发布与测试、玩法设计、系统拆解、竞品研究与产品复盘" },
-  { key: "game-market", label: "市场发行", section: "市场发行", guide: "发行、买量、商业化、运营、出海、市场数据、融资并购与公司经营" },
+  { key: "game-tech", label: "研发技术", section: "研发技术", guide: "引擎、图形渲染、性能优化、服务器、工具链、美术管线、AI 辅助研发与游戏创作工具和研发实践；工具发布也归本类，分类不代表达到精选门槛" },
+  { key: "game-products", label: "产品玩法", section: "产品玩法", guide: "玩法设计、系统拆解、竞品研究与产品复盘；核心必须包含玩法或设计分析，单纯上线排期不归本类" },
+  { key: "game-market", label: "市场发行", section: "市场发行", guide: "发行与上线排期、买量、商业化、运营、出海、市场数据、融资并购与公司经营" },
   { key: "industry", label: "行业政策", section: "行业政策", guide: "版号、监管、未成年人保护、平台规则、行业协会公告及产业政策" },
 ] as const;
 

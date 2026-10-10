@@ -174,7 +174,7 @@ export function toFeedItemSummary(row: ItemRow): FeedItemSummary {
   const item = toItemSummary(row);
   return {
     id: item.id, title: item.title, summary: item.summary, reason: item.reason,
-    source: { name: item.source.name }, publishedAt: item.publishedAt, timelineAt: item.timelineAt,
+    originalUrl: item.links.original, source: { name: item.source.name }, publishedAt: item.publishedAt, timelineAt: item.timelineAt,
     category: item.category, tags: item.tags, score: item.score, selected: item.selected, channel: item.channel,
     x: item.x ? {
       authorName: item.x.authorName, handle: item.x.handle, avatarUrl: item.x.avatarUrl,

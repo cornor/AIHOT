@@ -1,7 +1,7 @@
 // Feed filters: the channel and category row, and search.
 import { useEffect, useRef, useState } from "react";
 import { Form, Link, useNavigation, useSearchParams } from "react-router";
-import { CATEGORY_KEYS, CATEGORY_LABELS, CHANNEL_LABELS, type CategoryKey, type ChannelKey } from "@aihot/contracts/taxonomy";
+import { CATEGORY_KEYS, CATEGORY_LABELS, type CategoryKey, type ChannelKey } from "@aihot/contracts/taxonomy";
 import { IconClose, IconSearch } from "../../components/icons";
 import { PillTabs } from "../../components/ui/Tabs";
 
@@ -18,20 +18,24 @@ export function hrefWith(base: string, params: URLSearchParams, patch: Record<st
   return s ? `${base}?${s}` : base;
 }
 
-/**
- * The feed's one filter row (精选 and 全部动态 alike): 全部, 一手, then the categories. One choice at a
- * time: picking 一手 clears the category and picking a category clears 一手. Older 资讯 / X links
- * still filter; the row then shows 全部.
- */
+/** Category and first-party status are independent, combinable filters. */
 export function CategoryTabs({ base, category, channel = "all", layoutId, size = "md", className = "" }: { base: string; category: CategoryKey | null; channel?: ChannelKey; layoutId: string; size?: "md" | "sm"; className?: string }) {
   const [params] = useSearchParams();
   const items = [
-    { key: "all", label: "全部", to: hrefWith(base, params, { category: null, channel: null }) },
-    { key: "firstParty", label: CHANNEL_LABELS.firstParty, to: hrefWith(base, params, { category: null, channel: "firstParty" }) },
-    ...CATEGORY_KEYS.map((k) => ({ key: k, label: CATEGORY_LABELS[k], to: hrefWith(base, params, { category: k, channel: null }) })),
+    { key: "all", label: "全部", to: hrefWith(base, params, { category: null }) },
+    ...CATEGORY_KEYS.map((k) => ({ key: k, label: CATEGORY_LABELS[k], to: hrefWith(base, params, { category: k }) })),
   ];
-  const active = channel === "firstParty" ? "firstParty" : (category ?? "all");
-  return <PillTabs items={items} active={active} layoutId={layoutId} label="筛选" size={size} className={className} />;
+  return (
+    <div className={`flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 ${className}`}>
+      <PillTabs items={items} active={category ?? "all"} layoutId={layoutId} label="类别筛选" size={size} />
+      <Link to={hrefWith(base, params, { channel: channel === "firstParty" ? null : "firstParty" })}
+        aria-label={channel === "firstParty" ? "取消仅看一手" : "仅看一手"}
+        className={`inline-flex min-h-9 shrink-0 items-center gap-1.5 text-[13px] ${channel === "firstParty" ? "font-semibold text-accent" : "text-ink-3 hover:text-ink"}`}>
+        <span aria-hidden="true" className={`grid size-4 place-items-center rounded border ${channel === "firstParty" ? "border-accent bg-accent text-accent-contrast" : "border-line-strong"}`}>{channel === "firstParty" ? "✓" : ""}</span>
+        仅看一手
+      </Link>
+    </div>
+  );
 }
 
 function useSlashFocus(ref: React.RefObject<HTMLInputElement | null>) {

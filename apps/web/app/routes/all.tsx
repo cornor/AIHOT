@@ -62,7 +62,7 @@ export default function AllPage() {
   const navigation = useNavigation();
   const f = data.filters;
   const busy = navigation.state === "loading" && navigation.location?.pathname === "/all";
-  const keep = { channel: f.channel === "all" ? null : f.channel, category: f.category };
+  const keep = { channel: f.channel === "all" ? null : f.channel, category: f.category, tag: f.tag };
   const searchTabHref = (tab: "time" | "relevance") => {
     const sp = new URLSearchParams(params);
     sp.delete("page");
@@ -71,14 +71,14 @@ export default function AllPage() {
     return `/all?${sp}`;
   };
   const title = f.q ? `搜索“${f.q}”` : f.tag ? `#${f.tag}` : null;
-  const updated = new Date(data.freshness).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Shanghai" });
+  const collected = data.lastCollectedAt ? new Date(data.lastCollectedAt).toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Shanghai" }) : null;
 
   return (
-    <div className="pb-6">
+    <div className="mx-auto w-full max-w-[1080px] pb-6">
       {/* Desktop, as on 精选: the title, then one filter row with the search field aligned on the right. */}
       <div className="hidden lg:block">
         <h1 className="text-[24px] font-semibold leading-[1.3] text-ink">{title ?? `全部${withSubject("动态")}`}</h1>
-        <div className="mb-5 mt-4 flex items-center justify-between gap-4">
+        <div className="mb-3 mt-4 flex flex-wrap items-center justify-between gap-3">
           <CategoryTabs base="/all" category={f.category} channel={f.channel} layoutId="all-cat-desk" className="min-w-0" />
           <SearchField variant="track" defaultValue={f.q ?? ""} keep={keep} />
         </div>
@@ -90,7 +90,7 @@ export default function AllPage() {
           <h1 className="text-[22px] font-bold text-ink">{title ?? "全部动态"}</h1>
           {!f.q && (
             <span className="text-[12.5px] text-ink-4">
-              今日 <span className="num">{data.todayCount}</span> 条
+              今日发布 <span className="num">{data.todayCount}</span> 篇
             </span>
           )}
         </div>
@@ -98,6 +98,12 @@ export default function AllPage() {
         <div className="-mx-4 mt-3 border-b border-line-soft px-4 pb-3">
           <CategoryTabs base="/all" category={f.category} channel={f.channel} layoutId="all-cat-mobile" size="sm" className="min-w-0" />
         </div>
+      </div>
+
+      <div className="my-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-ink-4">
+        {!f.q && <span className="hidden lg:inline">今日发布 <span className="num">{data.todayCount}</span> 篇</span>}
+        <span>{collected ? <>最近同步 <time dateTime={data.lastCollectedAt!} className="num">{collected}</time></> : "尚无成功同步记录"}</span>
+        <span>按文章发布时间排序</span>
       </div>
 
       {f.q && (
@@ -110,7 +116,7 @@ export default function AllPage() {
             items={(["time", "relevance"] as const).map((t) => ({ key: t, label: t === "time" ? "最新（标题与摘要）" : "全文相关", to: searchTabHref(t) }))}
           />
           <span className="text-[12px] text-ink-4">
-            找到 <span className="num">{data.total >= 2000 ? "2000+" : data.total}</span> 条 · 更新于 <span className="num">{updated}</span>
+            找到 <span className="num">{data.total >= 2000 ? "2000+" : data.total}</span> 条
           </span>
         </div>
       )}
@@ -132,7 +138,7 @@ export default function AllPage() {
             </EmptyState>
           </div>
         ) : (
-          <DayList items={data.items} todayCount={f.q ? null : data.todayCount} showTags />
+          <DayList items={data.items} showTags />
         )}
       </div>
       <Pagination page={data.page} pageCount={data.pageCount} href={(p) => pageHref(params, p)} />

@@ -16,6 +16,7 @@ after(async () => {
 
 test("pool rail, paging, search and today count use publication time instead of ingestion time", async () => {
   await sql`INSERT INTO sources(id,name,kind) VALUES(${SOURCE},'Publication-time test','rss')`;
+  await sql`UPDATE sources SET last_ok_at='2050-01-01T00:00:00Z' WHERE id=${SOURCE}`;
   const expected: { id: string; at: string }[] = [];
   // Reverse ingestion order across a full page; include equal dates and a Beijing midnight boundary.
   for (let i = 0; i < 43; i++) {
@@ -35,11 +36,17 @@ test("pool rail, paging, search and today count use publication time instead of 
     const first = await loadPool({ ...filters, ...query });
     const second = await loadPool({ ...filters, ...query, page: 2 });
     assert.equal(first.total, 43);
+    assert.equal(first.lastCollectedAt, '2050-01-01T00:00:00.000Z', 'sync time is independent of article publication and generation');
+    assert.ok(first.items.every(item => item.originalUrl === `https://example.test/${item.id}`));
     assert.equal(first.todayCount, 3, 'only two midnight publications plus the missing-date fallback belong to today');
     assert.equal(first.items.length, 40);
     assert.equal(second.items.length, 3);
     assert.deepEqual([...first.items, ...second.items].map(i => ({ id: i.id, at: i.timelineAt })), expected);
   }
+  await sql`UPDATE sources SET enabled=false WHERE id=${SOURCE}`;
+  assert.notEqual((await loadPool(filters)).lastCollectedAt, '2050-01-01T00:00:00.000Z', 'disabled source sync is excluded');
+  await sql`UPDATE sources SET enabled=true, participation_mode='isolated' WHERE id=${SOURCE}`;
+  assert.notEqual((await loadPool(filters)).lastCollectedAt, '2050-01-01T00:00:00.000Z', 'isolated source sync is excluded');
   const [stored] = await sql`SELECT published_at,discovered_at,timeline_at FROM publications WHERE article_id=${`${T}-00`}`;
   assert.notEqual(stored!.published_at.toISOString(), stored!.discovered_at.toISOString());
   assert.equal(stored!.timeline_at.toISOString(), stored!.discovered_at.toISOString(), 'reading must not rewrite ingestion history');

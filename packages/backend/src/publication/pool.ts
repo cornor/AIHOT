@@ -191,10 +191,11 @@ export async function loadPool(query: PoolQuery): Promise<PoolResponse> {
 
   const { rows, total } = q ? await withSearchCapacity(run) : await run(sql);
   const today = beijingDate(now);
-  const meta = one(await sql<{ today_count: number; updated_at: Date | null }[]>`
+  const meta = one(await sql<{ today_count: number; updated_at: Date | null; collected_at: Date | null }[]>`
     SELECT (SELECT count(*) FROM publications p
       WHERE ${listedCondition(now)} AND coalesce(p.published_at, p.discovered_at) >= ${beijingMidnight(today)} ${filters}) AS today_count,
-      (SELECT max(p.updated_at) FROM publications p WHERE p.eligible) AS updated_at`);
+      (SELECT max(p.updated_at) FROM publications p WHERE p.eligible) AS updated_at,
+      (SELECT max(last_ok_at) FROM sources WHERE enabled AND participation_mode = 'editorial') AS collected_at`);
 
   return {
     filters: { channel: query.channel, category: query.category, tag: query.tag, topic: query.topic ?? null, q, tab },
@@ -209,6 +210,7 @@ export async function loadPool(query: PoolQuery): Promise<PoolResponse> {
     total,
     todayCount: Number(meta.today_count),
     freshness: (meta.updated_at ?? now).toISOString(),
+    lastCollectedAt: meta.collected_at?.toISOString() ?? null,
     generatedAt: now.toISOString(),
   };
 }

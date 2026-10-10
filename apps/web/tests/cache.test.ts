@@ -24,6 +24,17 @@ const api = createServer((req, res) => {
     const respond = () => res.end(JSON.stringify({ changelogVersion: "2026-09-28T12:00" }));
     return metaDelayMs ? setTimeout(respond, metaDelayMs) : respond();
   }
+  if (url.pathname === "/api/site/pool") {
+    return res.end(JSON.stringify({
+      filters: { channel: url.searchParams.get("channel") ?? "all", category: url.searchParams.get("category"), tag: null, topic: null, q: null, tab: "time" },
+      items: [{ id: "feed-test", title: "游戏开发工具更新", summary: "摘要介绍核心变化。", reason: null,
+        originalUrl: "https://example.test/original?x=1&y=2", source: { name: "测试信源" },
+        publishedAt: "2026-10-10T00:00:00Z", timelineAt: "2026-10-10T00:00:00Z",
+        category: "game-market", tags: ["市场发行", "出海", "出海"], score: null, selected: false, channel: "news", x: null }],
+      page: 1, pageCount: 1, total: 1, todayCount: 1, freshness: "2026-10-10T01:00:00Z",
+      lastCollectedAt: "2026-10-10T03:36:00Z", generatedAt: "2026-10-10T04:00:00Z",
+    }));
+  }
   if (url.pathname === "/api/site/timeline") {
     const filters = { channel: "all", category: url.searchParams.get("category"), tag: null, topic: null };
     res.setHeader("X-Accel-Expires", `@${deadline}`);
@@ -275,4 +286,21 @@ test("主题HTML和导航数据共享发布截止，过期上游不得续期", a
       await res.text();
     }
   } finally { deadline = savedDeadline; refreshAt = savedRefresh; }
+});
+
+
+test("feed offers original links, real sync time and composable source/category filters", async () => {
+  const res = await fetch(`${origin}/all?category=game-tech&channel=firstParty&page=3`);
+  assert.equal(res.status, 200);
+  const html = await res.text();
+  assert.match(html, /href="https:\/\/example.test\/original\?x=1&amp;y=2" target="_blank" rel="noopener noreferrer"/);
+  assert.match(html, /阅读原文/);
+  assert.match(html, /最近同步/);
+  assert.match(html, /dateTime="2026-10-10T03:36:00Z"/i);
+  assert.match(html, /今日发布/);
+  assert.match(html, /href="\/all\?category=game-products&amp;channel=firstParty"/);
+  assert.match(html, /aria-label="取消仅看一手"[^>]*href="\/all\?category=game-tech"/);
+  assert.match(html, /href="\/all\?channel=firstParty"/);
+  assert.doesNotMatch(html, /#市场发行/);
+  assert.equal((html.match(/#<!-- -->出海/g) ?? []).length, 1);
 });

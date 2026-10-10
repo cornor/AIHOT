@@ -26,12 +26,13 @@ export const FeedItem = memo(function FeedItem({ item, group, filters, read = fa
   const open = () => onOpen?.(item.id);
   const showSources = !!group && (group.additionalSourceCount > 0 || (group.developmentCount <= 1 && group.reportCount > 1));
   const showDevelopments = !!group?.story && group.developmentCount > 1;
-  const tags = showTags ? item.tags.slice(0, 3) : [];
+  const tags = showTags ? [...new Set(item.tags)].filter(t => t !== (item.category ? CATEGORY_LABELS[item.category] : null)).slice(0, 3) : [];
 
   return (
-    <article className="relative min-w-0 lg:card lg:card-hover lg:px-[18px] lg:pb-[14px] lg:pt-[15px]" data-item-id={item.id}>
+    <article className="relative min-w-0 lg:card lg:card-hover lg:px-6 lg:py-5" data-item-id={item.id}>
       <header className="flex min-h-[18px] items-center gap-2 text-[12.5px] leading-[18px] text-ink-4">
         <SourceLine item={item} className="text-ink-4" />
+        {read && <span className="text-[11px]">已读</span>}
         {item.selected && (
           <span className="hidden lg:inline-flex">
             <SelectedBadge />
@@ -58,12 +59,12 @@ export const FeedItem = memo(function FeedItem({ item, group, filters, read = fa
         </p>
       ) : (
         <>
-          <h3 className={`mt-2 line-clamp-2 text-[17px] font-bold leading-[1.55] lg:line-clamp-none lg:font-[650] ${read ? "text-ink-4" : "text-ink"}`}>
+          <h3 className="mt-2.5 line-clamp-3 text-[19px] font-bold leading-[1.5] text-ink lg:text-[21px]">
             <IntentLink to={`/items/${item.id}`} onClick={open} className="after:absolute after:inset-0 after:content-['']">
               {item.title}
             </IntentLink>
           </h3>
-          {item.summary && <p className="mt-1.5 line-clamp-2 text-[14.5px] leading-[1.75] text-ink-3 lg:mt-2 lg:line-clamp-3 lg:text-[15px]">{item.summary}</p>}
+          {item.summary && <p className="mt-3 line-clamp-3 text-[14px] leading-[1.85] text-ink-3">{item.summary}</p>}
         </>
       )}
 
@@ -71,7 +72,7 @@ export const FeedItem = memo(function FeedItem({ item, group, filters, read = fa
       {isX && item.x!.quoted?.text && <QuotedLine quoted={item.x!.quoted} />}
 
       {(tags.length > 0 || (showTags && item.category)) && (
-        <div className="relative z-10 mt-2 hidden flex-wrap gap-x-2.5 gap-y-1 text-[12px] text-ink-4 lg:flex">
+        <div className="relative z-10 mt-3 flex flex-wrap gap-x-2.5 gap-y-1 text-[12px] text-ink-4">
           {showTags && item.category && (
             <Link to={`/all?category=${item.category}`} className="hover:text-accent">
               {CATEGORY_LABELS[item.category]}
@@ -95,7 +96,15 @@ export const FeedItem = memo(function FeedItem({ item, group, filters, read = fa
 
       {item.reason && (
         <div className="mt-2.5 rounded-control bg-bg-sunk px-3 py-2 dark:bg-bg-muted/60 lg:mt-3 lg:rounded-none lg:border-t lg:border-line-soft lg:bg-transparent lg:px-0 lg:pb-0 lg:pt-3 lg:dark:bg-transparent">
-          <p className="line-clamp-2 text-[13px] leading-[1.65] text-ink-3 lg:line-clamp-none lg:leading-[1.75] lg:text-note">推荐理由：{item.reason}</p>
+          <p className="line-clamp-2 text-[13px] leading-[1.65] text-ink-3 lg:line-clamp-none lg:leading-[1.75] lg:text-note">参考价值：{item.reason}</p>
+        </div>
+      )}
+      {item.originalUrl && /^https?:\/\//i.test(item.originalUrl) && (
+        <div className="mt-3 flex justify-end">
+          <a href={item.originalUrl} target="_blank" rel="noopener noreferrer" onClick={open}
+            className="relative z-10 inline-flex min-h-9 items-center gap-1 rounded-control px-2 text-[13px] font-medium text-accent hover:bg-accent-soft hover:underline focus-visible:outline-2 focus-visible:outline-accent">
+            阅读原文 <span aria-hidden="true">↗</span>
+          </a>
         </div>
       )}
     </article>
