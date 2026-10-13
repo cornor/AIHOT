@@ -135,7 +135,7 @@ class TransportTest(unittest.TestCase):
                 if len(seen) == 1:
                     headers.add_header('Set-Cookie', 'wr_skey=new; Domain=.weread.qq.com; Path=/; Secure; HttpOnly')
                     headers.add_header('Set-Cookie', 'wr_rt=web%40new; Domain=.weread.qq.com; Path=/; Secure; HttpOnly')
-                    payload = {}
+                    payload = {'succ': 1}
                 elif len(seen) == 2:
                     payload = {'books': []}
                 else:
@@ -149,7 +149,7 @@ class TransportTest(unittest.TestCase):
         self.assertEqual(client.verify(), 'valid')
         self.assertEqual(client.verify_article(BOOK), 'valid')
         self.assertEqual(seen[0].full_url, 'https://weread.qq.com/web/login/renewal')
-        self.assertEqual(json.loads(seen[0].data), {'rq': '%2Fweb%2Fbook%2Fread', 'ql': True})
+        self.assertEqual(json.loads(seen[0].data), {'rq': '%2Fweb%2Fshelf%2Fsync', 'ql': False})
         for request in seen[1:]:
             cookie = request.get_header('Cookie')
             self.assertIn('wr_rt=web%40new', cookie)
@@ -166,6 +166,19 @@ class TransportTest(unittest.TestCase):
                 self.assertEqual(client.verify(), expected)
         with patch.object(client, 'request', return_value=(200, {'errCode': -2013})):
             self.assertEqual(client.renew(), 'expired')
+
+    def test_renewal_matches_login_mode_and_requires_explicit_success(self):
+        # Official reader derives ql from wr_ql, not from whether renewal is enabled.
+        for cookie, expected in [(OLD, False), (OLD + '; wr_ql=0', False), (OLD + '; wr_ql=1', True)]:
+            with self.subTest(ql=expected):
+                client = WeReadClient(cookie)
+                with patch.object(client, 'request', return_value=(200, {'succ': 1})) as request:
+                    self.assertEqual(client.renew(), 'ok')
+                    request.assert_called_once_with('/web/login/renewal',
+                        {'rq': '%2Fweb%2Fshelf%2Fsync', 'ql': expected})
+                for payload in ({}, {'succ': 0}, {'succ': 1, 'errCode': -2041}):
+                    with patch.object(client, 'request', return_value=(200, payload)):
+                        self.assertEqual(client.renew(), 'unknown')
 
     def test_redirects_cannot_leak_cookies(self):
         class StubHTTPS(urllib.request.HTTPSHandler):

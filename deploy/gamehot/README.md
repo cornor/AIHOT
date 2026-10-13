@@ -86,6 +86,8 @@ journalctl -u gamehot-monitor.service -n 20 --no-pager
 
 `werss/weread_auth.py` 是本站的续期模块，`patch-auth-renewal.py` 给固定 WeRSS 镜像添加鉴权入口与凭据写入锁。凭据只在 WeRSS 容器内处理，collector 仅接收 `status/attempted/renewed/reason`。持久化文件仍为 `/app/data/wx.lic`，新增最后成功续期时间，保留其他配置。环境变量托管的 Cookie 不自动覆盖，需改为文件管理才能续期。
 
+2026-10-13 对照[微信读书官网阅读器脚本](https://cdn.weread.qq.com/web/wrwebnjlogic/js/app.5b9cb55f.js)修正续期参数：`ql` 必须由当前 `wr_ql == "1"` 得出，不能固定为 `true`；`rq` 是触发过期的请求路径，这里为 `/web/shelf/sync`，进行 URL 编码。官网收到 `-2012/-2010` 后尝试续期，成功响应为 `succ=1`。这是官网前端实现证据，并非对第三方公开的稳定 API 文档或永久授权承诺。[WeRSS 项目文档](https://github.com/rachelos/we-mp-rss/blob/main/docs/weread-mp.md)仍提示 Cookie 过期后重新获取。线上同一份过期凭据在旧参数下返回 `-2013`，对齐上述参数后返回 `succ=1`，且书架与文章接口验证通过，完成首次真实续期。
+
 更换镜像时先停止 collector，再重建 WeRSS，最后重建 collector，因为两者共享网络命名空间。保留持久化调度，不清零到期时间。
 
 离线测试：`python3 -m unittest discover -s deploy/gamehot/werss -p 'test_weread_auth.py'`。完整 WeRSS 测试在候选镜像内挂载 `werss/` 到 `/tests`，使用 `--network none`。正常会话不提前续期；续期凭据被微信撤销时仍需扫码，不保证固定免扫码天数。

@@ -102,11 +102,15 @@ class WeReadClient:
         return 'unknown'
 
     def renew(self):
-        status, payload = self.request('/web/login/renewal', {'rq': '%2Fweb%2Fbook%2Fread', 'ql': True})
+        # Match the official reader: renew the failed request, using this login's wr_ql.
+        # Forcing ql=True rejects regular (wr_ql=0) sessions with -2013.
+        ql = cookies_of(self.cookie()).get('wr_ql') == '1'
+        status, payload = self.request('/web/login/renewal', {
+            'rq': urllib.parse.quote(SHELF.split('?', 1)[0], safe=''), 'ql': ql})
         code = payload.get('errCode', payload.get('errcode', 0))
         if code in (-2012, -2010, -2013):
             return 'expired'
-        return 'ok' if status == 200 and code == 0 else 'unknown'
+        return 'ok' if status == 200 and code == 0 and payload.get('succ') == 1 else 'unknown'
 
     def verify_article(self, book_id):
         status, payload = self.request('/api/mp/cover?' + urllib.parse.urlencode({'bookId': book_id}))
