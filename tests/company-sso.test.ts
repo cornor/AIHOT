@@ -98,7 +98,7 @@ test("reader can enter the site, cannot read or write admin endpoints or WeRSS a
   assert.equal(session!.id_hash, sha256(result.token));
   assert.ok(!JSON.stringify(session).includes(result.token));
   assert.ok(!JSON.stringify(session).includes("synthetic-company-token"));
-  assert.ok(Math.abs(new Date(session!.expires_at).getTime() - Date.now() - 8 * 3600_000) < 5000);
+  assert.ok(Math.abs(new Date(session!.expires_at).getTime() - Date.now() - 7 * 24 * 3600_000) < 5000);
 });
 
 test("admin mutations require CSRF and revocation removes existing sessions", async () => {
@@ -152,6 +152,7 @@ test("callback enforces origin and sets Secure HttpOnly sessions; logout/expiry 
   const cookies = result.headers["set-cookie"] as string[];
   const session = cookies.find(c => c.startsWith(`${SSO_COOKIE}=`))!;
   assert.match(session, /HttpOnly/); assert.match(session, /Secure/); assert.match(session, /SameSite=Lax/);
+  assert.match(session, /Max-Age=604800(?:;|$)/);
   const token = session.split(";")[0]!.split("=")[1]!;
   assert.ok(await ssoPrincipal(token));
   assert.equal((await app.inject({ method: "POST", url: "/api/auth/logout", headers: { ...headersFor(token), origin: config.siteUrl } })).statusCode, 303);

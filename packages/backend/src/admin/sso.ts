@@ -7,7 +7,7 @@ import { audit } from "../audit.ts";
 
 export const SSO_COOKIE = "gamehot_session";
 export const SSO_STATE_COOKIE = "gamehot_sso_state";
-export const SSO_SESSION_SECONDS = 8 * 3600;
+export const SSO_SESSION_SECONDS = 7 * 24 * 3600;
 export const SSO_LOGIN_URL = "https://account.xmpaoyou.com/sso";
 export const SSO_CHECK_URL = "https://account.xmpaoyou.com/api/sso/check-token";
 export const ssoEnabled = () => process.env.SSO_ENABLED === "true";
@@ -63,7 +63,7 @@ export async function completeSso(token: string, state: string, browser: string 
     await tx`UPDATE sso_users SET display_name=${identity.name || identity.account},last_login_at=now() WHERE account=${identity.account}`;
     if (!row!.enabled) return null;
     await tx`INSERT INTO sso_sessions(id_hash,account,csrf_token,expires_at)
-      VALUES(${sha256(session)},${identity.account},${randomBytes(18).toString("base64url")},now()+interval '8 hours')`;
+      VALUES(${sha256(session)},${identity.account},${randomBytes(18).toString("base64url")},now()+${SSO_SESSION_SECONDS} * interval '1 second')`;
     return row!;
   });
   if (!user) throw new SsoRejected("此账号尚未开通本站权限，请联系管理员");

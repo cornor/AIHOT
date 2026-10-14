@@ -16,7 +16,7 @@ export default function Account({ loaderData: me }: Route.ComponentProps) {
       <p className="text-sm text-ink-3">本站权限：{me.role === "admin" ? "管理员" : "读者"}</p>
       {me.role === "admin" && <div className="flex gap-4 text-accent"><a href="/admin">管理后台</a><a href="/werss/">WeRSS</a></div>}
       <form method="post" action="/api/auth/logout"><button className={buttonClass("secondary", "lg")}>退出本站</button></form>
-      <p className="text-xs text-ink-4">退出本站不会退出公司的其他系统。公司登录的本站会话最长保留 8 小时。</p>
+      <p className="text-xs text-ink-4">退出本站不会退出公司的其他系统。公司登录的本站会话最长保留 7 天。</p>
     </div>
   </div>;
 }
