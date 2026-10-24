@@ -72,6 +72,10 @@ test('faces are 精选组 sources by tier (T1, T1.5, T2), at most 6; 氛围组 o
   const order=[5,2,3,1,6,8,9,7,0,4];
   assert.deepEqual(full.map(p=>p.name),order.map(name));
   assert.deepEqual(home,full,'home and /hot show the same faces');
+  for (const count of [1, 2, 0]) {
+    await sql`UPDATE hot_rankings SET entries=${sql.json(entries.slice(0, count) as never)} WHERE id=${rankingId}`;
+    assert.equal((await loadHotStrip())?.length, count, 'small rankings remain visible; empty rankings return an empty list');
+  }
   assert.deepEqual(full.map(p=>p.iconUrl),order.map(i=>proxiedImage(imageUrl(i),'avatar')),'every name keeps its icon for the tooltip');
   // The six visible faces get responsive images (T1 without avatar shows an initial); the seventh 精选组 face does not.
   assert.deepEqual(full.filter(p=>p.iconSrcSet).map(p=>p.name),[5,3,1,6,8].map(name));

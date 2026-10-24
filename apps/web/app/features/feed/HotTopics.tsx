@@ -25,7 +25,6 @@ function TrendMark({ trend }: { trend: HotStripEntry["trend"] }) {
  * where it is heading. The whole row lights up on hover.
  */
 export function HotTopics({ entries }: { entries: HotStripEntry[] }) {
-  if (entries.length === 0) return null;
   return (
     <section
       aria-labelledby="hot-topics"
@@ -34,8 +33,8 @@ export function HotTopics({ entries }: { entries: HotStripEntry[] }) {
       <div className="mb-1 flex items-center justify-between">
         <h2 id="hot-topics" className="flex items-center gap-2 text-[14px] font-semibold text-ink">
           <span className="relative flex size-2" aria-hidden="true">
-            <span className="absolute inline-flex size-full animate-ping rounded-full bg-hot opacity-40" />
-            <span className="relative inline-flex size-2 rounded-full bg-hot" />
+            {entries.length > 0 && <span className="absolute inline-flex size-full animate-ping rounded-full bg-hot opacity-40" />}
+            <span className={`relative inline-flex size-2 rounded-full ${entries.length > 0 ? "bg-hot" : "bg-ink-4"}`} />
           </span>
           当前热点
         </h2>
@@ -43,6 +42,7 @@ export function HotTopics({ entries }: { entries: HotStripEntry[] }) {
           完整榜单 <IconArrowRight size={13} className="transition-transform duration-200 group-hover:translate-x-0.5" />
         </Link>
       </div>
+      {entries.length === 0 && <p className="py-3 text-[13px] leading-relaxed text-ink-3">近 48 小时暂无多源共同报道的热点</p>}
       <ol>
         {entries.slice(0, 5).map((e, i) => (
           <li key={e.rank}>
