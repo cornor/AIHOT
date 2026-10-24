@@ -48,7 +48,7 @@ async function check(path: string, expect: (res: Response, body: string) => stri
   }
 }
 
-await check("/", (res) => res.headers.get("location") === "/all" ? null : "homepage does not redirect to /all", 302);
+await check("/", (res) => res.headers.get("location") === "/selected" ? null : "homepage does not redirect to /selected", 302);
 
 // Pages write the name as HTML text: a name such as "MyF&B" appears as "MyF&amp;B".
 const htmlName = SITE.name.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#x27;");

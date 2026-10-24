@@ -94,11 +94,11 @@ after(async () => {
   await new Promise<void>((resolve) => api.close(() => resolve()));
 });
 
-test("homepage redirects to all articles and preserves filters and search", async () => {
-  for (const query of ["", "?category=technology&q=game&tag=AI"]) {
+test("homepage redirects to selected articles and preserves filters and search", async () => {
+  for (const query of ["", "?category=game-tech", "?category=technology&q=game&tag=AI"]) {
     const res = await fetch(`${origin}/${query}`, { redirect: "manual" });
     assert.equal(res.status, 302);
-    assert.equal(res.headers.get("Location"), `/all${query}`);
+    assert.equal(res.headers.get("Location"), `${query.includes("q=") ? "/all" : "/selected"}${query}`);
     assert.match(res.headers.get("Cache-Control") ?? "", /no-store/);
     await res.text();
   }
