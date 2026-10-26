@@ -16,3 +16,11 @@ export const SELECTION = {
    */
   understandFloor: 50,
 } as const;
+
+/** 精选页顶部推荐：只排序已入选文章，不改变精选门槛或评分标准。 */
+export const RECENT_READING = {
+  days: 7,
+  limit: 5,
+  perSource: 2,
+  freshnessPointsPerDay: 2,
+} as const;

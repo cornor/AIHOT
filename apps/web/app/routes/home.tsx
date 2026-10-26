@@ -7,7 +7,7 @@ import { loadOr404, queryString, releaseBoundCache } from "../lib/api.server";
 import { listPath, organizationLd, pageMeta } from "../lib/seo";
 import { Wordmark } from "../components/Logo";
 import { Timeline } from "../features/feed/Timeline";
-import { HotTopics } from "../features/feed/HotTopics";
+import { RecentReading } from "../features/feed/RecentReading";
 import { CategoryTabs, SearchField, SearchIconLink } from "../features/feed/Filters";
 import { beijingDate, beijingWeekday } from "../lib/format";
 
@@ -51,7 +51,7 @@ export default function Home() {
   const title = filters.tag ? `#${filters.tag}` : "精选";
   return (
     <div className="pb-6">
-      {/* Phones: brand bar, today's hot topics, then the feed under "最新精选". */}
+      {/* Phones: brand bar, recent reading picks, then the feed under "最新精选". */}
       <div className="flex h-14 items-center justify-between lg:hidden">
         <Wordmark size={20} className="text-ink" />
         <TodayLabel />
@@ -64,7 +64,7 @@ export default function Home() {
         </div>
       </div>
 
-      <HotTopics entries={data.hot ?? []} />
+      <RecentReading entries={data.recentReading ?? []} />
 
       <h2 className="mt-6 text-[20px] font-bold text-ink lg:hidden">{filters.tag ? title : "最新精选"}</h2>
       <div className="-mx-4 mt-3 flex items-center gap-2 pl-4 pr-2 lg:hidden">

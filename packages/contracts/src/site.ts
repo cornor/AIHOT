@@ -103,6 +103,16 @@ export interface HotStripEntry {
   participantCount: number;
 }
 
+export interface RecentReadingEntry {
+  id: string;
+  title: string;
+  reason: string;
+  sourceName: string;
+  publishedAt: string;
+  category: string | null;
+  sourceCount: number;
+}
+
 export interface TimelineFilters {
   channel: ChannelKey;
   category: CategoryKey | null;
@@ -117,6 +127,7 @@ export interface TimelineResponse {
   /** Absolute time when a pending item in this scope becomes visible; the page re-checks then. */
   refreshAt: string | null;
   hot: HotStripEntry[] | null;
+  recentReading?: RecentReadingEntry[];
   dayCounts: Record<string, number>;
   generatedAt: string;
 }

@@ -10,6 +10,7 @@ import { loadTimeline } from "@aihot/backend/publication/timeline";
 import { loadStoryFollowups } from "@aihot/backend/publication/followups";
 import { loadDevelopments, loadGroupReports } from "@aihot/backend/publication/groups";
 import { loadTopicTags } from "@aihot/backend/publication/topics";
+import { loadRecentReading } from "@aihot/backend/publication/recent-reading";
 import { loadHotStrip } from "@aihot/backend/publication/hot";
 import { loadChangelog, siteMeta } from "@aihot/backend/site/meta";
 import { loadContact, loadMakerAvatar } from "@aihot/backend/site/contact";
@@ -91,13 +92,14 @@ export function registerSite(app: FastifyInstance) {
     const filters = await parseFilters(q);
     const limit = Math.min(Math.max(Number(q.limit) || 20, 1), 40);
     const unfiltered = filters.channel === "all" && !filters.category && !filters.tag && !filters.topic && !q.cursor;
-    const [data, hot] = await Promise.all([
+    const [data, hot, recentReading] = await Promise.all([
       loadTimeline({ ...filters, cursor: q.cursor || null, limit }),
       unfiltered ? loadHotStrip() : null,
+      unfiltered ? loadRecentReading() : [],
     ]);
-    const body = { ...data, hot, generatedAt: new Date().toISOString() };
+    const body = { ...data, hot, recentReading, generatedAt: new Date().toISOString() };
     const cc = cacheUntil(reply, 60, data.refreshAt);
-    return sendJsonWithEtag(req, reply, body, { etagPrefix: "tl", cacheControl: cc, etagOf: { ...data, hot } });
+    return sendJsonWithEtag(req, reply, body, { etagPrefix: "tl", cacheControl: cc, etagOf: { ...data, hot, recentReading } });
   }));
 
   app.get("/api/site/pool", siteHandler(async (req, reply) => {
