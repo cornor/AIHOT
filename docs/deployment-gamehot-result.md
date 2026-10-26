@@ -282,3 +282,22 @@ API 与 Web 已部署为 `gamehot-app:sso7-1b0d50d`，发布前备份 `private/b
 
 代码审阅同时发现，现有列表模式遇到任意已入库文章就停止翻页，不能保证补齐单篇模式造成的更早缺口。后续回补必须使用明确的历史起点或完整分页范围，逐篇去重并记录失败；还需核验 RSS 导入的条数限制，确认回补文章实际进入站点后才能报告完成。此处仅记录待办，未修改或部署未经真实列表验证的采集实现。
 
+## 2026-10-26：官方 API Key 接入验证
+
+使用者提供微信读书 API Key 并要求改为官方 API 调用。Key 只保存于服务器 `/opt/gamehot/private/weread-api-key`，权限 600，未写入仓库、镜像或前端。所有真实请求在服务器执行，未改变生产采集模式。
+
+按 [Tencent/WeChatReading 官方调用说明](https://github.com/Tencent/WeChatReading/blob/main/skills/SKILL.md)，使用 `POST https://i.weread.qq.com/api/agent/gateway`、Bearer API Key、`skill_version=1.0.5`，业务参数平铺在 JSON 顶层。实测如下：
+
+| 能力 | 请求 | 结果 |
+| --- | --- | --- |
+| 接口目录 | `/_list` | 成功，返回当前开放接口及参数定义 |
+| 当前用户书架 | `/shelf/sync` | 成功，证明 Key 的用户授权可用；未输出私人书架内容 |
+| 普通搜书 | `/store/search`，`scope=10`，关键词“三体” | 成功 |
+| 公众号搜索 | `/store/search`，`scope=2`，关键词“游戏葡萄” | HTTP 499，业务码 -2041 |
+| 公众号文章搜索 | `/store/search`，`scope=4`，关键词“游戏葡萄” | HTTP 499，业务码 -2041 |
+| 公众号目录 | `/book/chapterinfo`，游戏葡萄及 `MP_WXS_3528995129` | HTTP 200，但 `chapters=[]`，没有可用文章列表 |
+| 公众号作为书籍查询最新点评 | `/review/list`，`reviewListType=3` | HTTP 200，`reviews=[]`；不能替代文章列表 |
+| 已知文章详情 | `/review/single`，既有 `MP_WXS_*` 文章 ID | 成功，`review.mpInfo` 含标题、原文标识、时间及 1202 字符 content；顶层无 htmlContent，未验证该文本是否为完整正文 |
+
+结论：Key 有效，但本次没有通过官方 API 获取到可用于发现新增文章的列表。不能把搜索失败、空目录误报成“没有新文章”，也不能因为已知文章详情可读就宣称增量采集已接通。生产仍使用现有 Cookie 最新单篇模式，扫码依赖未消除，完整增量及历史回补未完成。未请求付费服务、未调用 DeepSeek、未新增定时探测或飞书通知。仅凭 -2041 无法断言官方永久关闭该能力，亦无证据表明再次生成 Key 可以解决。
+
