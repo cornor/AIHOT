@@ -159,5 +159,96 @@
     "name": "TapTap发现好游戏",
     "tier": "T2",
     "firstParty": false
+  },
+  {
+    "sourceId": "werss-gamequest",
+    "feedId": "MP_WXS_3945841861",
+    "name": "GameQuest",
+    "tier": "T2",
+    "firstParty": false
+  },
+  {
+    "sourceId": "werss-en-games",
+    "feedId": "MP_WXS_3949878376",
+    "name": "en的游戏时光",
+    "tier": "T2",
+    "firstParty": false
+  },
+  {
+    "sourceId": "werss-longxia",
+    "feedId": "MP_WXS_3541060043",
+    "name": "龙虾游戏推荐",
+    "tier": "T2",
+    "firstParty": false
+  },
+  {
+    "sourceId": "werss-youxun",
+    "feedId": "MP_WXS_3964100586",
+    "name": "游讯先锋",
+    "tier": "T2",
+    "firstParty": false
+  },
+  {
+    "sourceId": "werss-chengle",
+    "feedId": "MP_WXS_3988974300",
+    "name": "橙了个橘",
+    "tier": "T2",
+    "firstParty": false
+  },
+  {
+    "sourceId": "werss-jinghe",
+    "feedId": "MP_WXS_3902648252",
+    "name": "竞核",
+    "tier": "T2",
+    "firstParty": false
+  },
+  {
+    "sourceId": "werss-yystv",
+    "feedId": "MP_WXS_3237377160",
+    "name": "游戏研究社",
+    "tier": "T2",
+    "firstParty": false
+  },
+  {
+    "sourceId": "werss-leihuo-ux",
+    "feedId": "MP_WXS_3583880550",
+    "name": "网易雷火UX用户体验中心",
+    "tier": "T2",
+    "firstParty": false
+  },
+  {
+    "sourceId": "werss-indienova",
+    "feedId": "MP_WXS_2392229767",
+    "name": "indienova",
+    "tier": "T2",
+    "firstParty": false
+  },
+  {
+    "sourceId": "werss-gamersky",
+    "feedId": "MP_WXS_2399051562",
+    "name": "游民星空",
+    "tier": "T2",
+    "firstParty": false
+  },
+  {
+    "sourceId": "werss-youxidongli",
+    "feedId": "MP_WXS_3566781352",
+    "name": "游戏动力",
+    "tier": "T2",
+    "firstParty": false
+  },
+  {
+    "sourceId": "werss-baijing",
+    "feedId": "MP_WXS_3635921266",
+    "name": "白鲸出海",
+    "tier": "T2",
+    "firstParty": false
+  },
+  {
+    "sourceId": "werss-gcores",
+    "feedId": "MP_WXS_2399032840",
+    "name": "机核",
+    "tier": "T2",
+    "firstParty": false
   }
 ]
