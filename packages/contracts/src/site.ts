@@ -105,6 +105,7 @@ export interface HotStripEntry {
 
 export interface RecentReadingEntry {
   id: string;
+  originalUrl: string;
   title: string;
   reason: string;
   sourceName: string;

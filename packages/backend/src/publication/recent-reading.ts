@@ -5,6 +5,7 @@ import { selectedCondition } from "./scope.ts";
 
 export interface ReadingCandidate {
   id: string;
+  url: string;
   title: string;
   reason: string | null;
   summary: string | null;
@@ -54,7 +55,7 @@ export function chooseRecentReading(candidates: ReadingCandidate[], now: Date): 
   for (const row of representatives) if (row.category && !categories.has(row.category)) add(row);
   for (const row of representatives) add(row);
   return picked.sort(order).map(row => ({
-    id: row.id, title: row.title,
+    id: row.id, title: row.title, originalUrl: row.url,
     // Existing editorial text only: never generate recommendations in a reader request.
     reason: (row.reason?.trim() || row.summary?.trim() || "").replace(/\s+/g, " "),
     sourceName: row.source_name, publishedAt: row.published_at.toISOString(), category: row.category,
@@ -66,7 +67,7 @@ export function chooseRecentReading(candidates: ReadingCandidate[], now: Date): 
 export async function loadRecentReading(now = new Date()): Promise<RecentReadingEntry[]> {
   const since = new Date(now.getTime() - RECENT_READING.days * DAY);
   const rows = await sql<ReadingCandidate[]>`
-    SELECT p.article_id AS id, p.title, p.reason, p.summary, p.source_id, s.name AS source_name,
+    SELECT p.article_id AS id, p.url, p.title, p.reason, p.summary, p.source_id, s.name AS source_name,
       p.published_at, p.category, p.score, p.story_id, p.fact_id,
       coalesce(length(a.body_text), 0) AS body_length
     FROM publications p JOIN sources s ON s.id = p.source_id JOIN articles a ON a.id = p.article_id

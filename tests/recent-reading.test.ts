@@ -8,7 +8,7 @@ after(closeDb);
 const now = new Date("2040-10-26T04:00:00Z");
 const DAY = 86_400_000;
 const row = (id: string, extra: Partial<ReadingCandidate> = {}): ReadingCandidate => ({
-  id, title: `文章 ${id}`, reason: "提供可供研发团队参考的产品复盘", summary: "摘要", source_id: id,
+  id, url: `https://example.test/reading/${id}`, title: `文章 ${id}`, reason: "提供可供研发团队参考的产品复盘", summary: "摘要", source_id: id,
   source_name: id, published_at: now, category: "game-tech", score: 80,
   story_id: null, fact_id: null, body_length: 1000, ...extra,
 });
@@ -74,6 +74,7 @@ test("publication scope excludes hidden, withdrawn, unselected, gated, undated a
     const result = await loadRecentReading(now);
     assert.deepEqual(result.map(r => r.id), [visible]);
     assert.equal(result[0]?.reason, "已生成的推荐理由");
+    assert.equal(result[0]?.originalUrl, "https://example.test/reading");
     assert.equal(result[0]?.sourceCount, 1);
     await sql`UPDATE publications SET visibility='withdrawn' WHERE article_id=${visible}`;
     assert.deepEqual(await loadRecentReading(now), []);
