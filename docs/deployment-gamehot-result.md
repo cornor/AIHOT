@@ -274,6 +274,7 @@ API 与 Web 已部署为 `gamehot-app:sso7-1b0d50d`，发布前备份 `private/b
 - 使用运行中的 WeRSS 代码读取两个公众号的 `/web/mp/articles?bookId=...&offset=0`，均返回业务错误 `-2041`。
 - 在服务器 Chromium 中加载现有登录 Cookie，打开微信读书官网后，同源浏览器请求文章列表仍返回 HTTP 200、业务码 `-2041`；同一公众号的 `/api/mp/cover` 返回业务成功和一个 `reviewId`，没有历史文章列表。这排除了仅由 Python 请求方式导致失败的简单解释。
 - 官网书架可以打开；从书架已有公众号入口进入阅读器，页面显示“加载失败，请点击重试”。此次没有取得可用于完整增量采集的新列表入口。
+- 另排查书架订阅条件：`MP_WXS_3528995129` 起初 `onShelf=0`，调用项目讨论中列出的 `/mp/shelf/addToShelf` 返回 `succ=1`，复查 `onShelf=1`；再次请求文章列表仍为 `-2041`。本次增加了这一个已有采集信源的微信读书书架订阅，没有新增站点信源。仅补上书架订阅不能解决本次列表失败。
 
 [WeRSS 项目文档](https://github.com/rachelos/we-mp-rss/blob/main/docs/weread-mp.md)声称列表已废弃、cover 只能返回最新一篇；但同项目当前代码注释和 [issue #442](https://github.com/rachelos/we-mp-rss/issues/442)又记录过列表可用。上游材料互相矛盾，不能将 `-2041` 直接解释为所有账号都永久不可用，也不能把过去的成功记录当作本机当前可用的证明。
 
