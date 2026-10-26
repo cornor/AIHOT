@@ -75,7 +75,7 @@ class Notices:
         self.state['auth_problem_notice_at'] = now
         self.enqueue('采集暂缓：授权验证或续期异常', [
             '本次未能确认可用登录态，未继续抓取；不代表必须重新扫码。',
-            '可能是网络、接口或凭据保存异常，约 4 小时后重试；同类异常每天最多提醒一次。'])
+            '可能是网络、接口或凭据保存异常，下一次定时采集为北京时间 09:00，扫码成功后也会重试；同类异常每天最多提醒一次。'])
 
     def authorization(self, status, collecting, now=None):
         now = time.time() if now is None else now

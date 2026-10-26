@@ -126,10 +126,10 @@ def collection_findings(enabled, data):
     stale = None
     if enabled and data is not None and data.get('collection_sources', 0) > 0:
         age = data.get('collection_sync_age')
-        stale = age is None or age > 8 * 3600
+        stale = age is None or age > 30 * 3600
     return {
         'collector.paused': (paused, '自动采集已暂停，不会抓取新文章；需验证上游接口后恢复采集' if paused else '自动采集开关已开启；是否同步成功由同步记录检查确认'),
-        'collector.sync': (stale, '自动采集已开启，但超过 8 小时没有成功 RSS 同步（或从未成功）；请检查采集器及上游接口' if stale else '最近 8 小时内有成功 RSS 同步'),
+        'collector.sync': (stale, '自动采集已开启，但超过 30 小时没有成功 RSS 同步（或从未成功）；请检查采集器及上游接口' if stale else '最近 30 小时内有成功 RSS 同步'),
     }
 
 

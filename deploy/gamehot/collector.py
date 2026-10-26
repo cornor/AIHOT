@@ -10,12 +10,15 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from datetime import datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 from notifications import Notices
 
 ROOT = Path(__file__).resolve().parents[2]
 BASE = "http://127.0.0.1:8001/api/v1/wx"
-INTERVAL = 4 * 60 * 60
+TIMEZONE = ZoneInfo('Asia/Shanghai')
+SCHEDULE_VERSION = 'daily-09-shanghai-v1'
 stop = threading.Event()
 for sig in (signal.SIGINT, signal.SIGTERM):
     signal.signal(sig, lambda *_: stop.set())
@@ -130,7 +133,7 @@ def cycle(notices):
                  f'站点入库：新增 {created} 篇，更新 {revised} 篇。',
                  'RSS 导入：' + ('存在失败或结果不完整。' if incomplete else '完成。'),
                  '摘要由后台异步生成；此通知不代表 DeepSeek 摘要已完成。',
-                 f'本轮耗时：{round(time.monotonic() - started)} 秒；下一轮约 4 小时后。']
+                 f'本轮耗时：{round(time.monotonic() - started)} 秒；定时采集：每天北京时间 09:00。']
         if failures: lines.append('采集失败：' + '、'.join(failures))
         if import_failed: lines.append('导入失败：' + '、'.join(import_failed))
         if os.environ.get('WERSS_LATEST_ONLY') == 'true':
@@ -144,11 +147,22 @@ def cycle(notices):
         return True
 
 
+def daily_slot(now):
+    return datetime.fromtimestamp(now, TIMEZONE).replace(hour=9, minute=0, second=0, microsecond=0)
+
+
+def next_daily(now):
+    slot = daily_slot(now)
+    if slot.timestamp() <= now:
+        slot += timedelta(days=1)
+    return slot.timestamp()
+
+
 class Schedule:
-    """Keep an overdue cycle due while waiting for a new, locally saved QR authorization."""
+    """Run at 09:00 Beijing time, plus once for each newly saved QR authorization."""
     def __init__(self, path=None):
         self.path = Path(path or Path(os.environ.get('AIHOT_DATA_DIR', '.data')) / 'collector-schedule.json')
-        self.state = json.loads(self.path.read_text()) if self.path.exists() else {'due_at': 0, 'retry_at': 0, 'auth_event': None}
+        self.state = json.loads(self.path.read_text()) if self.path.exists() else {}
 
     def save(self):
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -160,8 +174,8 @@ class Schedule:
     def run_due(self, notices):
         if os.environ.get('COLLECT_ENABLED') != 'true':
             return False
-        # This file contains only an event ID, never credentials. No network polling.
-        event = self.state['auth_event']
+        now = time.time()
+        event = self.state.get('auth_event')
         event_path = os.environ.get('WERSS_AUTH_EVENT_FILE')
         if event_path:
             try:
@@ -170,28 +184,35 @@ class Schedule:
                     event = value
             except (OSError, ValueError, AttributeError):
                 pass
-        changed = event != self.state['auth_event']
-        if changed:
-            self.state['auth_event'] = event
+        # A fresh installation remembers the existing event without replaying an old scan.
+        changed = bool(self.state) and event != self.state.get('auth_event')
+        if self.state.get('version') != SCHEDULE_VERSION:
+            slot = daily_slot(now).timestamp()
+            self.state = {'version': SCHEDULE_VERSION,
+                          'due_at': slot if now < slot + 60 else next_daily(now),
+                          'auth_event': self.state.get('auth_event', event)}
             self.save()
-        now = time.time()
-        if now < self.state['due_at'] or (now < self.state['retry_at'] and not changed):
+        due = self.state['due_at']
+        scheduled = due <= now < due + 60
+        # A missed 09:00 slot is skipped; restarting later does not cause an extra run.
+        if now >= due:
+            self.state['due_at'] = next_daily(now)
+            self.save()
+        if not scheduled and not changed:
             return False
-        # Persist before the attempt so a restart cannot replay the same scan event.
-        self.state['retry_at'] = now + INTERVAL
+        # Consume both triggers before collection so a restart cannot replay the attempt.
+        self.state['auth_event'] = event
+        self.state['last_attempt_at'] = now
         self.save()
+        print('Collection trigger: ' + ('daily+scan' if scheduled and changed else 'daily' if scheduled else 'scan'), flush=True)
         try:
-            completed = cycle(notices)
+            cycle(notices)
         except Exception as exc:
-            completed = False
             print('Collection failed: ' + type(exc).__name__, flush=True)
             if not stop.is_set():
                 notices.enqueue('采集未完成', ['本轮任务异常中断，请检查采集器和 WeRSS 服务。',
-                    '错误类型：' + type(exc).__name__, '下一轮约 4 小时后重试；到期后重新扫码可触发补采。'])
-        if completed:
-            self.state['due_at'] = time.time() + INTERVAL
-        self.state['retry_at'] = 0 if stop.is_set() else time.time() + INTERVAL
-        self.save()
+                    '错误类型：' + type(exc).__name__,
+                    '下一次定时采集为北京时间 09:00；重新扫码成功也会额外采集一次。'])
         return True
 
 
@@ -200,7 +221,7 @@ if __name__ == "__main__":
     if '--notify-test' in sys.argv:
         notices.enqueue('飞书通知接通测试', [
             '已启用：每轮采集概况、微信读书授权过期及恢复提醒。',
-            '采集周期：每轮结束后等待 4 小时；仅在采集时检查授权。',
+            '采集周期：每天北京时间 09:00；扫码成功后额外采集一次，仅在采集时检查授权。',
             '当前采集开关：' + ('开启' if os.environ.get('COLLECT_ENABLED') == 'true' else '关闭'),
             '这是接通测试，不代表本轮采集已完成，也不是授权过期告警。'])
         notices.flush()

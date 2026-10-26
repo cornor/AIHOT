@@ -111,9 +111,10 @@ class MonitorTest(unittest.TestCase):
         self.assertEqual(self.sender.call_count, 1)
 
     def test_collection_sync_checks_success_instead_of_new_article_count(self):
-        for age in (None, 8 * 3600 + 1):
+        for age in (None, 30 * 3600 + 1):
             self.assertTrue(collection_findings(True, {'collection_sources': 11, 'collection_sync_age': age})['collector.sync'][0])
-        self.assertFalse(collection_findings(True, {'collection_sources': 11, 'collection_sync_age': 3600})['collector.sync'][0])
+        for age in (3600, 24 * 3600, 30 * 3600):
+            self.assertFalse(collection_findings(True, {'collection_sources': 11, 'collection_sync_age': age})['collector.sync'][0])
         for enabled, data in ((None, None), (True, None), (True, {'collection_sources': 0}), (False, {'collection_sources': 11})):
             self.assertIsNone(collection_findings(enabled, data)['collector.sync'][0])
 
