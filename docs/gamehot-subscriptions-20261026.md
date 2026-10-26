@@ -57,3 +57,16 @@
 已在服务器 WeRSS 创建 13 个订阅，在站点 sources 表创建对应 13 个启用信源，collector 使用 `gamehot-app:sources-20261026` 读取全部 36 个去重订阅。新增记录标记等待首次采集；13 个 RSS 地址均返回合法 XML，当前文章数为 0，尚未触发文章导入及模型处理。采集计划及已消费扫码事件在部署前后完全一致，下一次定时仍为 2026-10-27 09:00（北京时间）；新扫码会额外触发一轮。
 
 发布前备份 `private/backups/20261026-112229` 校验成功。服务器隔离测试库的 typecheck、迁移、584 项后端测试、前端构建及 34 项前端测试通过；生产内网 smoke 全部通过。仅重建 collector，其他服务保持运行。本次真实请求只用于核实账号入口与本机 RSS，没有进行额外整轮采集或测试飞书推送。
+
+## 补充：收到四个原文链接后核实
+
+使用者补充链接后，已读取文章发布账号及 `biz`，并在服务器通过微信读书 cover 接口二次核实，四个名称和唯一标识均匹配。此前的跳过决定不再适用于以下账号；七麦数据与七麦研究院为不同唯一标识，各自保留。
+
+| 公众号 | 站点信源 ID | WeRSS 唯一标识 | 使用者提供的原文 |
+| --- | --- | --- | --- |
+| 引力引擎 | `werss-gravity` | `MP_WXS_3921683971` | [原文](https://mp.weixin.qq.com/s/NCR65YwfCOs3E-XeBw8TYw) |
+| 游鲨游戏圈 | `werss-yousha` | `MP_WXS_3574816669` | [原文](https://mp.weixin.qq.com/s/khS7vF_v22veD-ayhpeicQ) |
+| 腾讯GWB游戏无界 | `werss-tencent-gwb` | `MP_WXS_3080799890` | [原文](https://mp.weixin.qq.com/s/ojDSfPGqFf3l79n2JR7rnw) |
+| 七麦数据 | `werss-qimai-data` | `MP_WXS_3204016236` | [原文](https://mp.weixin.qq.com/s/C7oWVmbHEFBUNquMIUNAJg) |
+
+新增账号沿用上一批的 T2 配置、摘要及原文链接展示。提供的文章用于核实身份，不作为要求回补历史的指令。原始请求曾返回环境验证页，使用正常浏览器及带浏览器 User-Agent 的服务器请求可读取文章元数据，没有修改微信读书凭据。

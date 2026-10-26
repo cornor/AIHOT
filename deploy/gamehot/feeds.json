@@ -250,5 +250,33 @@
     "name": "机核",
     "tier": "T2",
     "firstParty": false
+  },
+  {
+    "sourceId": "werss-gravity",
+    "feedId": "MP_WXS_3921683971",
+    "name": "引力引擎",
+    "tier": "T2",
+    "firstParty": false
+  },
+  {
+    "sourceId": "werss-yousha",
+    "feedId": "MP_WXS_3574816669",
+    "name": "游鲨游戏圈",
+    "tier": "T2",
+    "firstParty": false
+  },
+  {
+    "sourceId": "werss-tencent-gwb",
+    "feedId": "MP_WXS_3080799890",
+    "name": "腾讯GWB游戏无界",
+    "tier": "T2",
+    "firstParty": false
+  },
+  {
+    "sourceId": "werss-qimai-data",
+    "feedId": "MP_WXS_3204016236",
+    "name": "七麦数据",
+    "tier": "T2",
+    "firstParty": false
   }
 ]
