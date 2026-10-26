@@ -1,8 +1,6 @@
 import { Link } from "react-router";
 import type { RecentReadingEntry } from "@aihot/contracts/site";
-import { CATEGORY_LABELS, isCategoryKey } from "@aihot/contracts/taxonomy";
 import { markRead } from "../../lib/local-state";
-import { monthDayTime } from "../../lib/format";
 
 export function RecentReading({ entries }: { entries: RecentReadingEntry[] }) {
   if (!entries.length) return null;
@@ -24,11 +22,7 @@ export function RecentReading({ entries }: { entries: RecentReadingEntry[] }) {
                   <h3 className="line-clamp-2 text-[16px] font-semibold leading-relaxed text-ink group-hover:text-accent">{entry.title}</h3>
                   {entry.reason && <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-ink-3"><span className="text-accent">推荐理由：</span>{entry.reason}</p>}
                 </Link>
-                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-ink-4">
-                  {entry.category && <span>{isCategoryKey(entry.category) ? CATEGORY_LABELS[entry.category] : entry.category}</span>}
-                  <span>{entry.sourceName}</span>
-                  <time dateTime={entry.publishedAt}>{monthDayTime(entry.publishedAt)}</time>
-                  {entry.sourceCount > 1 && <span className="text-accent">{entry.sourceCount} 个来源关注</span>}
+                <div className="mt-2 flex justify-end">
                   {entry.originalUrl && /^https?:\/\//i.test(entry.originalUrl) && (
                     <a href={entry.originalUrl} target="_blank" rel="noopener noreferrer" onClick={() => { void markRead(entry.id); }}
                       className="ml-auto inline-flex min-h-9 shrink-0 items-center gap-1 rounded-control px-2 text-[13px] font-medium text-accent hover:bg-accent-soft hover:underline focus-visible:outline-2 focus-visible:outline-accent">
