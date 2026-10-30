@@ -11,6 +11,12 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 
+def same_beijing_day(previous, now):
+    return previous is not None and (
+        datetime.fromtimestamp(previous, ZoneInfo('Asia/Shanghai')).date()
+        == datetime.fromtimestamp(now, ZoneInfo('Asia/Shanghai')).date())
+
+
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, *args):
         return None
@@ -70,12 +76,12 @@ class Notices:
 
     def authorization_problem(self, now=None):
         now = time.time() if now is None else now
-        if now - self.state.get('auth_problem_notice_at', 0) < 86400:
+        if same_beijing_day(self.state.get('auth_problem_notice_at'), now):
             return
         self.state['auth_problem_notice_at'] = now
         self.enqueue('采集暂缓：授权验证或续期异常', [
             '本次未能确认可用登录态，未继续抓取；不代表必须重新扫码。',
-            '可能是网络、接口或凭据保存异常，下一次定时采集为北京时间 09:00，扫码成功后也会重试；同类异常每天最多提醒一次。'])
+            '可能是网络、接口或凭据保存异常，下一次定时采集为北京时间 09:00，扫码成功后也会重试；同类异常按北京时间每天最多提醒一次。'])
 
     def authorization(self, status, collecting, now=None):
         now = time.time() if now is None else now
@@ -84,13 +90,13 @@ class Notices:
         if status not in ('valid', 'expired', 'missing'):
             return
         self.state['auth_status'] = status
-        if status in ('expired', 'missing') and (previous != status or now - self.state.get('auth_notice_at', 0) >= 86400):
+        if status in ('expired', 'missing') and not same_beijing_day(self.state.get('auth_notice_at'), now):
             self.state['auth_notice_at'] = now
             self.enqueue('微信读书授权已过期' if status == 'expired' else '微信读书尚未授权', [
                 '无法正常采集新文章，请打开下面的页面重新扫码并在手机上确认。',
                 'https://gamehot.paoyou.com/werss/weread',
                 '先登录站点，再登录 WeRSS，点击“扫码授权”。',
-                '同一问题每天最多提醒一次。'])
+                '同一问题按北京时间每天最多提醒一次。'])
         elif status == 'valid' and previous in ('expired', 'missing'):
             self.enqueue('微信读书授权已恢复', [
                 '登录凭据已通过验证；各公众号是否采集成功仍以本轮采集结果为准。',

@@ -6,6 +6,7 @@ import tempfile
 import unittest
 import urllib.error
 from pathlib import Path
+from datetime import datetime
 from unittest.mock import patch
 
 import collector
@@ -32,12 +33,45 @@ class NotificationsTest(unittest.TestCase):
         self.assertEqual(len(reloaded.state['pending']), 2)
         self.assertIn('开关仍关闭', reloaded.state['pending'][1]['text'])
 
-    def test_expiry_repeat_is_at_most_daily(self):
-        self.notices.authorization('expired', True, now=100000)
-        self.notices.authorization('expired', True, now=186399)
-        self.assertEqual(len(self.notices.state['pending']), 1)
-        self.notices.authorization('expired', True, now=186400)
-        self.assertEqual(len(self.notices.state['pending']), 2)
+    def test_auth_notices_use_beijing_calendar_day(self):
+        def stamp(value):
+            return datetime.fromisoformat(value).timestamp()
+        for kind in ('problem', 'expired'):
+            with self.subTest(kind=kind):
+                path = Path(self.temp.name) / (kind + '.json')
+                notices = notifications.Notices(path)
+                def notify(target, value):
+                    if kind == 'problem':
+                        target.authorization_problem(now=stamp(value))
+                    else:
+                        target.authorization('expired', True, now=stamp(value))
+                notify(notices, '2026-10-29T09:00:08+08:00')
+                reloaded = notifications.Notices(path)
+                notify(reloaded, '2026-10-29T23:59:59+08:00')
+                self.assertEqual(len(reloaded.state['pending']), 1)
+                # Next morning arrives one second short of a full 24 hours.
+                notify(reloaded, '2026-10-30T09:00:07+08:00')
+                notify(reloaded, '2026-10-30T09:00:08+08:00')
+                self.assertEqual(len(reloaded.state['pending']), 2)
+
+    def test_beijing_midnight_is_the_boundary_not_utc_midnight(self):
+        for kind in ('problem', 'expired'):
+            with self.subTest(kind=kind):
+                notices = notifications.Notices(Path(self.temp.name) / (kind + '.json'))
+                for value in ('2026-10-29T15:59:59+00:00', '2026-10-29T16:00:00+00:00',
+                              '2026-10-30T00:00:00+00:00'):
+                    now = datetime.fromisoformat(value).timestamp()
+                    if kind == 'problem':
+                        notices.authorization_problem(now=now)
+                    else:
+                        notices.authorization('expired', True, now=now)
+                self.assertEqual(len(notices.state['pending']), 2)
+
+    def test_same_day_expiry_state_changes_do_not_spam(self):
+        now = datetime.fromisoformat('2026-10-30T09:00:00+08:00').timestamp()
+        for i, status in enumerate(('expired', 'missing', 'valid', 'expired')):
+            self.notices.authorization(status, True, now=now+i)
+        self.assertEqual(len(self.notices.state['pending']), 2)  # One warning, one recovery.
 
     def test_healthy_start_does_not_send_recovery(self):
         self.notices.authorization('valid', True)
